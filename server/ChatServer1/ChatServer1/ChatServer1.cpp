@@ -19,6 +19,7 @@ int main()
             });
         auto port_str = con["SelfServer"]["Port"];
         CServer s(ioc, atoi(port_str.c_str()));
+        s.StartAccept();
         ioc.run();
 
     }

@@ -13,7 +13,7 @@ using message::StatusService;
 
 class StatusGrpcClient :public Singleton<StatusGrpcClient>
 {
-	friend class StatusGrpcClient;
+	friend class Singleton<StatusGrpcClient>;
 public:
 	
 	LoginRsp Login(int id, std::string token);

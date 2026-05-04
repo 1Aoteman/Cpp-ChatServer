@@ -15,8 +15,8 @@ public:
 	~CServer();
 	void ClearSession(std::string uuid);
 	void Stop();
-private:
 	void StartAccept();
+private:
 	std::mutex _mutex;
 	boost::asio::io_context& _ioc;
 	tcp::acceptor _acceptor;

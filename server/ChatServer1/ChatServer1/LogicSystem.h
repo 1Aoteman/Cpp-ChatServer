@@ -5,6 +5,7 @@
 #include "json/json.h"
 #include <map>
 #include <queue>
+#include "data.h"
 
 typedef std::function<void(std::shared_ptr<CSession>, const short& msg_id, const std::string& msg_data)> FunCallBack;
 class LogicSystem:public Singleton<LogicSystem>
@@ -22,5 +23,6 @@ private:
 	std::condition_variable _cond;
 	std::mutex _mutex;
 	std::queue<std::shared_ptr<LogicNode>> _msg_que;
+	std::map<int, std::shared_ptr<UserInfo>> _users;
 };
 

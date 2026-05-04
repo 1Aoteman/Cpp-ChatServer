@@ -10,6 +10,7 @@
 #include <jdbc/cppconn/resultset.h>
 #include <jdbc/cppconn/statement.h>
 #include <jdbc/cppconn/exception.h>
+#include "data.h"
 class SqlConnection {
 public:
 	SqlConnection(sql::Connection* con,int64_t last_time):_con(con),_last_time(last_time){}
@@ -124,7 +125,9 @@ private:
 class MysqlDao
 {
 public:
-	void 
+	std::shared_ptr<UserInfo> getUser(int uid);
+	MysqlDao();
+	~MysqlDao();
 private:
 	std::unique_ptr<MysqlConPool> _pool;
 };

@@ -26,9 +26,11 @@ void CSession::Start()
 }
 
 void CSession::AsyncReadHead(int head_len)
+
 {
+    std::cout << "开始读取数据" << std::endl;
     auto self = shared_from_this();
-    AsyncReadFull(head_len, [self,this](boost::system::error_code ec,size_t bytetransfered) {
+    AsyncReadFull(HEAD_TOTAL_LEN, [self,this](boost::system::error_code ec,size_t bytetransfered) {
         try {
             if (ec) {
                 std::cout << "read error is" << ec.what() << std::endl;
@@ -53,7 +55,6 @@ void CSession::AsyncReadHead(int head_len)
            std::cout << "recv data msg_id is" << msg_id << std::endl;
            if (msg_id > MAX_LENGTH) {//判断msg_id是否合法
                std::cout << "msg id length not match..." << std::endl;
-               Close();
                _cserver->ClearSession(_session_id);
                return;
            }

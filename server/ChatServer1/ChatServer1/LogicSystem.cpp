@@ -90,22 +90,6 @@ void LogicSystem::LoginHandler(std::shared_ptr<CSession> session, const short& m
 		return;
 	}
 
-	//内存中查询用户信息
-	auto find_iter = _users.find(uid);
-	std::shared_ptr<UserInfo> user_info = nullptr;
-	if (find_iter == _users.end()) {
-		//查询数据库
-		user_info = MysqlMgr::GetInstance()->GetUser(uid);
-		if (user_info == nullptr) {
-			rtvalue["error"] = ErrorCodes::UidInvalid;
-			return;
-		}
-		_users[uid] = user_info;
-	}
-	else {
-		user_info = find_iter->second;
-	}
-	//内存中查询用户信息
 	auto find_iter = _users.find(uid);
 	std::shared_ptr<UserInfo> user_info = nullptr;
 	if (find_iter == _users.end()) {

@@ -16,3 +16,6 @@ LoginRsp StatusGrpcClient::Login(int id, std::string token)
         return reply;
     }
 }
+StatusGrpcClient::StatusGrpcClient() {
+
+}

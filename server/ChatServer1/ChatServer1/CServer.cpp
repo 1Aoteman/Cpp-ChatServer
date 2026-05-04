@@ -15,9 +15,12 @@ void CServer::StartAccept() {
 	auto newsession = std::make_shared<CSession>(_io_context,this);
 	_acceptor.async_accept(newsession->GetSocket(), [newsession,this](const boost::system::error_code &err_code) {
 		if (!err_code) {
+			std::cout << "测试一下" << std::endl;
 			//如果没有错误，Csession处理
 			newsession->Start();
 			_sessions.insert(std::make_pair(newsession->GetUuid(), newsession));
+			//循环调用
+			StartAccept();
 
 		}
 		else {

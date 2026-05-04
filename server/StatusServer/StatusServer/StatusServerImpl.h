@@ -9,7 +9,8 @@ using grpc::ServerContext;
 using message::GetChatServerReq;
 using message::GetChatServerRsp;
 using message::StatusService;
-
+using message::LoginReq;
+using message::LoginRsp;
 struct ChatServer {
 public:
 	ChatServer() :_host(""), _port(""), _name(""), _count(0) {}
@@ -33,7 +34,7 @@ class StatusServerImpl final:public StatusService::Service
 public:
 	StatusServerImpl();
 	Status GetChatServer(ServerContext* context, const GetChatServerReq* request, GetChatServerRsp* reply) override;
-	
+	Status Login(ServerContext* context, const LoginReq* request, LoginRsp* reply)override;
 private:
 	void InsertToken(int uid,std::string token);
 	ChatServer getChatServer();

@@ -111,6 +111,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,6 +132,7 @@ xcopy "$(ProjectDir)*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\" /y</Com
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -154,6 +156,7 @@ xcopy "$(ProjectDir)*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\" /y</Com
     <ClCompile Include="MessageNode.cpp" />
     <ClCompile Include="MysqlDao.cpp" />
     <ClCompile Include="MysqlMgr.cpp" />
+    <ClCompile Include="RedisMgr.cpp" />
     <ClCompile Include="StatusGrpcClient.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -169,6 +172,7 @@ xcopy "$(ProjectDir)*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\" /y</Com
     <ClInclude Include="MessageNode.h" />
     <ClInclude Include="MysqlDao.h" />
     <ClInclude Include="MysqlMgr.h" />
+    <ClInclude Include="RedisMgr.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="StatusGrpcClient.h" />
   </ItemGroup>

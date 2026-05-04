@@ -46,7 +46,32 @@ Status StatusServerImpl::GetChatServer(ServerContext* context, const GetChatServ
 	reply->set_port(server._port);
 	reply->set_error(ErrorCodes::Success);
 	reply->set_token(generate_unique_string());
+	std::cout << reply << std::endl;
 	InsertToken(request->uid(), reply->token());
+	return Status::OK;
+}
+
+Status StatusServerImpl::Login(ServerContext* context, const LoginReq* request, LoginRsp* reply)
+{
+	auto uid = request->uid();
+	auto token = request->token();
+	
+	std::string uid_str = std::to_string(uid);
+	std::string token_key = USERTOKENPREFIX + uid_str;
+	std::string token_value = "";
+	bool success = RedisMgr::GetInstance()->Get(token_key, token_value);
+	if (success) {
+		reply->set_error(ErrorCodes::UidInvalid);
+		return Status::OK;
+	}
+
+	if (token_value != token) {
+		reply->set_error(ErrorCodes::TokenInvalid);
+		return Status::OK;
+	}
+	reply->set_error(ErrorCodes::Success);
+	reply->set_uid(uid);
+	reply->set_token(token);
 	return Status::OK;
 }
 
