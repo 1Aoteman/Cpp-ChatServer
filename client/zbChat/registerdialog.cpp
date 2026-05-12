@@ -93,7 +93,7 @@ void RegisterDialog::on_get_code_clicked()
         QJsonObject json_obj;
         json_obj["email"] = email;
         HttpMgr::GetInstance()->PostHttpReq(QUrl(gate_url_prefix+"/get_varifycode"),json_obj,
-                                            ReqId::ID_GET_VERIFY_CODE,Modules::REGIDTERMOD);
+                                            ReqId::ID_GET_VARIFY_CODE,Modules::REGIDTERMOD);
     }else{
         //提示邮箱不正确
         showTip(tr("邮箱地址不正确"),false);
@@ -242,7 +242,7 @@ void RegisterDialog::ChangeTipPage()//注册成功,切换到page2
 void RegisterDialog::InitHttpHandlers()
 {
     //注册获取验证码回包逻辑
-    _handlers.insert(ReqId::ID_GET_VERIFY_CODE,[this](QJsonObject jsonObj){
+    _handlers.insert(ReqId::ID_GET_VARIFY_CODE,[this](QJsonObject jsonObj){
         int error=jsonObj["error"].toInt();
         if(error!=ErrorCodes::SUCCESS)
         {

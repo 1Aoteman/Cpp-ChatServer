@@ -125,7 +125,7 @@ void ReSetDialog::on_varify_btn_clicked()
         //发送http请求获取验证码
         QJsonObject jsonobj;
         jsonobj["email"]= email;
-        HttpMgr::GetInstance()->PostHttpReq(QUrl(gate_url_prefix+"/get_varifycode"),jsonobj,ReqId::ID_GET_VERIFY_CODE,Modules::RESETMOD);
+        HttpMgr::GetInstance()->PostHttpReq(QUrl(gate_url_prefix+"/get_varifycode"),jsonobj,ReqId::ID_GET_VARIFY_CODE,Modules::RESETMOD);
     }else{
         //提示错误信息
         showTip("邮箱格式不正确",false);
@@ -133,7 +133,7 @@ void ReSetDialog::on_varify_btn_clicked()
 }
 void ReSetDialog::initHandlers()
 {
-    _handlers.insert(ReqId::ID_GET_VERIFY_CODE,[this](QJsonObject jsonobj){
+    _handlers.insert(ReqId::ID_GET_VARIFY_CODE,[this](QJsonObject jsonobj){
 
         if(jsonobj["error"]!=ErrorCodes::SUCCESS){
             showTip("验证码发送失败",false);
@@ -144,7 +144,7 @@ void ReSetDialog::initHandlers()
         showTip("验证码发送成功",true);
         qDebug()<< "email is " << email ;
     });
-    _handlers.insert(ReqId::Id_RESET_PWD, [this](QJsonObject jsonObj){
+    _handlers.insert(ReqId::ID_RESET_PWD, [this](QJsonObject jsonObj){
         int error = jsonObj["error"].toInt();
         if(error != ErrorCodes::SUCCESS){
             showTip(tr("参数错误"),false);
@@ -203,7 +203,7 @@ void ReSetDialog::on_confirm_btn_clicked()
     json_obj["email"] = ui->email_edit->text();
     json_obj["pass"] = ui->pass_edit->text();
     json_obj["varifycode"] = ui->varify_edit->text();
-    HttpMgr::GetInstance()->PostHttpReq(QUrl(gate_url_prefix+"/reset_pwd"),json_obj,ReqId::Id_RESET_PWD,Modules::RESETMOD);
+    HttpMgr::GetInstance()->PostHttpReq(QUrl(gate_url_prefix+"/reset_pwd"),json_obj,ReqId::ID_RESET_PWD,Modules::RESETMOD);
     emit switchLogin();
 }
 

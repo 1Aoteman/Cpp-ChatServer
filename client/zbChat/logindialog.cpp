@@ -17,6 +17,7 @@ LoginDialog::LoginDialog(QWidget *parent)
     //单例模板返回的是智能指针
     connect(this,&LoginDialog::sig_tcp_con,TcpMgr::GetInstance().get(),&TcpMgr::slot_tcp_con);
     connect(TcpMgr::GetInstance().get(),&TcpMgr::sig_con_success,this,&LoginDialog::slot_tcp_finish);
+    connect(TcpMgr::GetInstance().get(), &TcpMgr::sig_login_failed, this, &LoginDialog::slot_login_failed);
     initHead();
     inithandlers();
 }
@@ -78,6 +79,19 @@ void LoginDialog::slot_tcp_finish(bool success)
     }
 }
 
+void LoginDialog::slot_login_failed(int err)
+{    
+        QString result = QString("登录失败, err is %1")
+                             .arg(err);
+        showTip(result,false);
+        enableBtn(true);   
+}
+bool LoginDialog::enableBtn(bool enabled)
+{
+    ui->login_btn->setEnabled(enabled);
+    ui->reg_btn->setEnabled(enabled);
+    return true;
+}
 void LoginDialog::inithandlers()
 {
     //初始化回包逻辑

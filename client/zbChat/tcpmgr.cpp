@@ -1,4 +1,5 @@
 #include "tcpmgr.h"
+#include "usermgr.h"
 
 TcpMgr::TcpMgr():_host("") {
     connect(&_socket,&QTcpSocket::connected,[&]{
@@ -42,11 +43,48 @@ TcpMgr::TcpMgr():_host("") {
         qDebug()<<"连接断开";
     });
     connect(this,&TcpMgr::sig_send_data,this,&TcpMgr::slot_send_data);
+    inithandler();
 }
 
 void TcpMgr::inithandler()
 {
+    _handler.insert(ID_CHAT_LOGIN_RSP,[this](ReqId id, int len, QByteArray data){
+        qDebug()<<"request id id"<<id<<"data is"<<data;
+        //转化为json
+        QJsonDocument jsondoc =QJsonDocument::fromJson(data);
+        // 检查转换是否成功
+        if(jsondoc.isNull()){
+            qDebug() << "Failed to create QJsonDocument.";
+            return;
+        }
+        QJsonObject jsonObj = jsondoc.object();
+        if(!jsonObj.contains("error")){
+            int err = ErrorCodes::ERR_JSON;
+            qDebug() << "Login Failed, err is Json Parse Err" << err ;
+            emit sig_login_failed(err);
+            return;
+        }
+        int err = jsonObj["error"].toInt();
+        if(err != ErrorCodes::SUCCESS){
+            qDebug() << "Login Failed, err is " << err ;
+            emit sig_login_failed(err);
+            return;
+        }
+        UserMgr::GetInstance()->SetUid(jsonObj["uid"].toInt());
+        UserMgr::GetInstance()->SetName(jsonObj["name"].toString());
+        UserMgr::GetInstance()->SetToken(jsonObj["token"].toString());
+        emit sig_swich_chatdlg();
+    });
+}
 
+void TcpMgr::dealmsg(ReqId id, int len, QByteArray data)
+{
+    auto find_iter =  _handler.find(id);
+    if(find_iter == _handler.end()){
+        qDebug()<< "not found id ["<< id << "] to handle";
+        return ;
+    }
+    find_iter.value()(id,len,data);
 }
 
 void TcpMgr::slot_tcp_con(ServerInfo &si)

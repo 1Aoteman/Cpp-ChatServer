@@ -7,6 +7,7 @@
 #include <QJsonObject>
 #include "singleton.h"
 #include "global.h"
+#include "userdata.h"
 
 class TcpMgr:public QObject,public Singleton<TcpMgr>,public std::enable_shared_from_this<TcpMgr>
 {
@@ -27,11 +28,12 @@ private:
 signals:
     void sig_con_success(bool success);
     void sig_send_data(ReqId id,QString data);
-    void sig_login_failed(int);
+    void sig_login_failed(int err);
+    void sig_swich_chatdlg();
+    void sig_user_search(std::shared_ptr<SearchInfo>);
 public slots:
     void slot_tcp_con(ServerInfo &si);
     void slot_send_data(ReqId id,QString data);
-    void sig_swich_chatdlg();
 };
 
 #endif // TCPMGR_H
