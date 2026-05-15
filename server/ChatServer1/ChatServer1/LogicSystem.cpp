@@ -1,6 +1,7 @@
 #include "LogicSystem.h"
 #include "StatusGrpcClient.h"
 #include "MysqlMgr.h"
+#include "RedisMgr.h"
 #include "data.h"
 LogicSystem::LogicSystem():_b_stop(false)
 {
@@ -80,16 +81,39 @@ void LogicSystem::LoginHandler(std::shared_ptr<CSession> session, const short& m
 		<< root["token"].asString() << std::endl;
 	int uid = root["uid"].asInt();
 	std::string token = root["token"].asString();
-	std::string return_str = root.toStyledString();
 	LoginRsp rsp = StatusGrpcClient::GetInstance()->Login(uid, token);
+	
 	//session->Send(return_str, msg_id);
 	Json::Value rtvalue;
+	//使用defer，在结束时必定运行其中函数
+	Defer defer([this, &rtvalue, session] {
+		std::string return_str = rtvalue.toStyledString();
+		session->Send(return_str, MSG_CHAT_LOGIN_RSP);
+		});
+	std::string uid_str = std::to_string(uid);
+	std::string token_key = USERTOKENPREFIX+uid_str;
+	std::string token_value = "";
+	//从redis中验证token；
+	bool success=RedisMgr::GetInstance()->Get(token_key, token_value);
+	if (!success) {
+		rtvalue["error"] = ErrorCodes::UidInvalid;
+		return;
+	}
+	if (token_value !=token) {
+		rtvalue["error"] = ErrorCodes::TokenInvalid;
+		return;
+	}
+	rtvalue["error"] = ErrorCodes::Success;
+
 	rtvalue["error"] = rsp.error();
 	//如果回复不成功
 	if (rtvalue["error"] != ErrorCodes::Success) {
 		return;
 	}
-
+	//根据用户uid查询详细信息
+	std::string user_base_key = USER_BASE_INFO + uid_str;
+	auto user_info = std::make_shared<UserInfo>();
+	bool _b_base = GetBaseInfo(user_base_key,uid,user_info);
 	auto find_iter = _users.find(uid);
 	std::shared_ptr<UserInfo> user_info = nullptr;
 	if (find_iter == _users.end()) {

@@ -16,10 +16,16 @@ CSession::CSession(boost::asio::io_context &ioc,CServer* server):_socket(ioc),_c
 tcp::socket& CSession::GetSocket() {
     return _socket;
 }
-std::string& CSession::GetUuid() {
+void CSession::SetUserId(int uid)
+{
+    _user_id = uid;
+}
+std::string& CSession::GetSessionId() {
     return _session_id;
 }
-
+int CSession::GetUserId() {
+    return _user_id;
+}
 void CSession::Start()
 {
     AsyncReadHead(HEAD_TOTAL_LEN);

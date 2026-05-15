@@ -23,6 +23,5 @@ private:
 	std::condition_variable _cond;
 	std::mutex _mutex;
 	std::queue<std::shared_ptr<LogicNode>> _msg_que;
-	std::map<int, std::shared_ptr<UserInfo>> _users;
 };
 

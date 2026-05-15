@@ -31,6 +31,7 @@ signals:
     void sig_login_failed(int err);
     void sig_swich_chatdlg();
     void sig_user_search(std::shared_ptr<SearchInfo>);
+    void sig_auth_rsp(std::shared_ptr<AuthRsp>);
 public slots:
     void slot_tcp_con(ServerInfo &si);
     void slot_send_data(ReqId id,QString data);

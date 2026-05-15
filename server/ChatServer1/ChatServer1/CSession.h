@@ -14,7 +14,9 @@ class CSession:public std::enable_shared_from_this<CSession>
 public:
 	CSession(boost::asio::io_context &ioc, CServer* server);
 	tcp::socket& GetSocket();
-	std::string& GetUuid();
+	std::string& GetSessionId();
+	void SetUserId(int uid);
+	int GetUserId();
 	void Start();
 	void  AsyncReadHead(int head_len);
 	void AsyncReadBody(short msg_len);
@@ -33,6 +35,7 @@ private:
 	std::shared_ptr<MessageNode> _recv_head_node;
 	char _data[MAX_LENGTH];
 	std::mutex _send_mutex;
+	int _user_id;
 };
 
 class LogicNode {

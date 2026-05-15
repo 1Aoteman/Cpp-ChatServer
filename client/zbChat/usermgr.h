@@ -3,6 +3,8 @@
 #include <QObject>
 #include <memory>
 #include <SIngleton.h>
+#include "userdata.h"
+
 class UserMgr:public QObject,public Singleton<UserMgr>,
                 public std::enable_shared_from_this<UserMgr>
 {
@@ -14,10 +16,12 @@ public:
     QString GetName();
     void SetUid(int uid);
     void SetToken(QString token);
+    std::vector<std::shared_ptr<ApplyInfo>> GetApplyList();
 private:
     UserMgr();
     QString _name;
     QString _token;
     int _uid;
+    std::vector<std::shared_ptr<ApplyInfo>> _apply_list;
 };
 #endif // USERMGR_H
