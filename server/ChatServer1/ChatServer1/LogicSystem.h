@@ -16,6 +16,10 @@ public:
 	void InitCallBack();
 	void PostMsgToQue(std::shared_ptr<LogicNode> logicnode);
 	void DealMsg();
+	void AddFriendApply(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
+	bool isPureDigit(std::string str);
+	void GetUserByUid(std::string uid_str, Json::Value& rtroot);
+	void GetUserByName(std::string name, Json::Value& rtroot);
 private:
 	std::map<short, FunCallBack> _fun_callbacks;
 	std::atomic<bool> _b_stop;
@@ -23,5 +27,7 @@ private:
 	std::condition_variable _cond;
 	std::mutex _mutex;
 	std::queue<std::shared_ptr<LogicNode>> _msg_que;
+	//用来获取用户基本信息，先去redis中找，找不到再去数据库中找
+	bool GetBaseInfo(std::string user_base_key, int uid, std::shared_ptr<UserInfo>& userinfo);
 };
 

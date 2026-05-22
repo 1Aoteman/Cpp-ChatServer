@@ -2,6 +2,7 @@
 #include <queue>
 #include "Singleton.h"
 #include <sw/redis++/redis++.h>
+#include "const.h"
 class RedisPool {
 public:
     RedisPool(size_t poolsize, const char* host, int port, const char* pwd) {
@@ -89,6 +90,7 @@ public:
     bool HSet(const std::string& key, const std::string& hkey, const std::string& value);
     bool HSet(const char* key, const char* hkey, const char* hvalue, size_t hvaluelen);
     std::string HGet(const std::string& key, const std::string& hkey);
+    bool HDel(const std::string& key, const std::string& field);
     bool Del(const std::string& key);
     bool ExistsKey(const std::string& key);
     void Close();

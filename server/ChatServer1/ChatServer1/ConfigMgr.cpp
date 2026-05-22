@@ -1,4 +1,12 @@
 #include "ConfigMgr.h"
+std::string ConfigMgr::GetValue(const std::string& section, const std::string& key)
+{
+	if (_config_map.find(section) == _config_map.end()) {
+		return "";
+	}
+
+	return _config_map[section].GetValue(key);
+}
 ConfigMgr::ConfigMgr() {
 	// 获取当前工作目录  
 	boost::filesystem::path current_path = boost::filesystem::current_path();

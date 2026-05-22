@@ -20,7 +20,7 @@ public:
 class MysqlConPool {
 public:
 	MysqlConPool(size_t poolsize, std::string url, std::string user, std::string pass, std::string schema) :
-		_pool_size(poolsize), _user(user), _pass(pass), _schema(schema), _b_stop(false)
+		_pool_size(poolsize),_url(url),_user(user), _pass(pass), _schema(schema), _b_stop(false)
 	{
 		try {
 			for (int i = 0; i < poolsize; i++) {
@@ -126,6 +126,7 @@ class MysqlDao
 {
 public:
 	std::shared_ptr<UserInfo> getUser(int uid);
+	std::shared_ptr<UserInfo> getUser(std::string name);
 	MysqlDao();
 	~MysqlDao();
 private:

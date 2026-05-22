@@ -34,7 +34,6 @@ void CSession::Start()
 void CSession::AsyncReadHead(int head_len)
 
 {
-    std::cout << "开始读取数据" << std::endl;
     auto self = shared_from_this();
     AsyncReadFull(HEAD_TOTAL_LEN, [self,this](boost::system::error_code ec,size_t bytetransfered) {
         try {

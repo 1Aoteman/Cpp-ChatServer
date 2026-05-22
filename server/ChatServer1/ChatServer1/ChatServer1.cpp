@@ -14,9 +14,9 @@ int main()
     auto server_name = conf["SelfServer"]["Name"];
     try {
         
-        RedisMgr::GetInstance()->HSet(LOGIN_COUNT,server_name,0);
+        RedisMgr::GetInstance()->HSet(LOGIN_COUNT,server_name,"0");
         //创捷grpc服务
-        std::string server_address = conf["SelfServer"]["Host"] + ":" + conf["SelfServer"]["Port"];
+        std::string server_address = conf["SelfServer"]["Host"] + ":" + conf["SelfServer"]["RPCPort"];
         ChatServiceImpl service;
         grpc::ServerBuilder builder;
         // 监听端口和添加服务

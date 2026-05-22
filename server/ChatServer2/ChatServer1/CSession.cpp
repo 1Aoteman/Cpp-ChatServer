@@ -16,10 +16,16 @@ CSession::CSession(boost::asio::io_context &ioc,CServer* server):_socket(ioc),_c
 tcp::socket& CSession::GetSocket() {
     return _socket;
 }
-std::string& CSession::GetUuid() {
+void CSession::SetUserId(int uid)
+{
+    _user_id = uid;
+}
+std::string& CSession::GetSessionId() {
     return _session_id;
 }
-
+int CSession::GetUserId() {
+    return _user_id;
+}
 void CSession::Start()
 {
     AsyncReadHead(HEAD_TOTAL_LEN);
@@ -28,7 +34,6 @@ void CSession::Start()
 void CSession::AsyncReadHead(int head_len)
 
 {
-    std::cout << "开始读取数据" << std::endl;
     auto self = shared_from_this();
     AsyncReadFull(HEAD_TOTAL_LEN, [self,this](boost::system::error_code ec,size_t bytetransfered) {
         try {

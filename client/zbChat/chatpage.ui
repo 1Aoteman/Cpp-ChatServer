@@ -89,7 +89,7 @@
             <item>
              <widget class="QLabel" name="title_lb">
               <property name="text">
-               <string>蓝少</string>
+               <string/>
               </property>
              </widget>
             </item>

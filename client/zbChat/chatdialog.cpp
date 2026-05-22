@@ -53,7 +53,7 @@ ChatDialog::ChatDialog(QWidget *parent)
     connect(ui->side_contract_lb, &StateWidget::clicked, this, &ChatDialog::slot_side_contract);
     //链接搜索框输入变化
     connect(ui->search_edit, &QLineEdit::textChanged, this, &ChatDialog::slot_text_changed);
-
+    ui->search_list->SetSearchEdit(ui->search_edit);
     //检测鼠标点击位置判断是否要清空搜索框
     this->installEventFilter(this); // 安装事件过滤器
     //设置聊天label选中状态

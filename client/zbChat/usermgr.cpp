@@ -5,6 +5,11 @@ UserMgr::~UserMgr()
 QString UserMgr::GetName(){
     return _name;
 }
+
+int UserMgr::GetUId()
+{
+
+}
 void UserMgr::SetName(QString name)
 {
     _name = name;

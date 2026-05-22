@@ -31,6 +31,8 @@ TcpMgr::TcpMgr():_host("") {
             //读取消息体
             QByteArray msgbody = _buffer.mid(0,_msg_len);
             qDebug()<<"消息长度是"<<msgbody;
+            //处理消息
+            dealmsg(ReqId(_msg_id),_msg_len,msgbody);
             _buffer = _buffer.mid(_msg_len);
         }
         //5.15 之后版本
@@ -75,6 +77,30 @@ void TcpMgr::inithandler()
         UserMgr::GetInstance()->SetToken(jsonObj["token"].toString());
         emit sig_swich_chatdlg();
     });
+    //收到服务器端查询回复
+    _handler.insert(ID_SEARCH_USER_RSP,[this](ReqId id, int len, QByteArray data){
+        QJsonDocument jsondoc = QJsonDocument::fromJson(data);
+        if(jsondoc.isNull()){
+            qDebug() << "Failed to create QJsonDocument.";
+            return;
+        }
+        QJsonObject jsonobj =jsondoc.object();
+        if(!jsonobj.contains("error")){
+            int err = ErrorCodes::ERR_JSON;
+            qDebug() << "search Failed, err is Json Parse Err" << err ;
+            //这里应该发送查询失败信号
+            return;
+        }
+        int err = jsonobj["error"].toInt();
+        if(err != ErrorCodes::SUCCESS){
+            qDebug() << "Search Failed, err is " << err ;
+            return;
+        }
+        auto search_info =std::make_shared<SearchInfo>(jsonobj["uid"].toInt(),
+        jsonobj["name"].toString(), jsonobj["nick"].toString(),
+                                                        jsonobj["desc"].toString(), jsonobj["sex"].toInt(), jsonobj["icon"].toString());
+        emit sig_user_search(search_info);
+    });
 }
 
 void TcpMgr::dealmsg(ReqId id, int len, QByteArray data)
@@ -95,17 +121,17 @@ void TcpMgr::slot_tcp_con(ServerInfo &si)
     _socket.connectToHost(_host,_port);
 }
 
-void TcpMgr::slot_send_data(ReqId id,QString data )
+void TcpMgr::slot_send_data(ReqId id,QByteArray data )
 {
     uint16_t _id =id;
-    uint16_t _len=data.length();
+    quint16 _len = static_cast<quint16>(data.length());
     QByteArray block;
     //使用流想block中注入数据
-    QDataStream out(&block,QIODevice::ReadOnly);
+    QDataStream out(&block,QIODevice::WriteOnly);
     //放入消息头
-    out>>_id>>_len;
+    out<<_id<<_len;
     //放进要传递的消息
-    QByteArray message = data.toUtf8();
-    block.append(message);
+
+    block.append(data);
     _socket.write(block);
 }

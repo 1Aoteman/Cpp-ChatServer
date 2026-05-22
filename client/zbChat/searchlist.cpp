@@ -2,10 +2,12 @@
 #include<QScrollBar>
 #include "adduseritem.h"
 #include "tcpmgr.h"
+#include "customizeedit.h"
 #include "findsuccessdlg.h"
 #include "loadingdlg.h"
 #include "userdata.h"
 #include "usermgr.h"
+
 
 SearchList::SearchList(QWidget *parent):QListWidget(parent),_find_dlg(nullptr), _search_edit(nullptr), _send_pending(false)
 {
@@ -20,6 +22,11 @@ SearchList::SearchList(QWidget *parent):QListWidget(parent),_find_dlg(nullptr), 
     addTipItem();
     //连接搜索条目
     connect(TcpMgr::GetInstance().get(), &TcpMgr::sig_user_search, this, &SearchList::slot_user_search);
+
+}
+void SearchList::SetSearchEdit(QWidget *edit)
+{
+    _search_edit =edit;
 }
 void SearchList::addTipItem()
 {
@@ -59,11 +66,23 @@ void SearchList::slot_item_clicked(QListWidgetItem *item)
         return;
     }
     if(itemType == ListItemType::ADD_USER_TIP_ITEM){
-        //todo ...
-        _find_dlg = std::make_shared<FindSuccessDlg>(this);
-        auto si = std::make_shared<SearchInfo>(0,"llfc","llfc","hello , my friend!",0,"/res/head_1.jpg");
-        (std::dynamic_pointer_cast<FindSuccessDlg>(_find_dlg))->SetSearchInfo(si);
-        _find_dlg->show();
+        //，发送消息查询有延迟，判断是否还查询发送状态
+        if(_send_pending){
+            return;
+        }
+        if(!_search_edit){
+            return;
+        }
+        waitPending(true);
+        auto search_edit = dynamic_cast<CustomizeEdit*>(_search_edit);
+        //取出搜索框中的查询条件
+        auto uid_str =search_edit->text();
+        QJsonObject jsonobj;
+        jsonobj["uid"] =uid_str;
+        QJsonDocument jsondoc(jsonobj);
+        QByteArray jsondata =jsondoc.toJson(QJsonDocument::Compact);
+        emit TcpMgr::GetInstance()->sig_send_data(ReqId::ID_SEARCH_USER_REQ,jsondata);
+        qDebug()<<"发送了搜索请求";
         return;
     }
     //清楚弹出框
@@ -74,7 +93,36 @@ void SearchList::CloseFindDlg()
     // 这里写关闭查找对话框的逻辑
     // 如果暂时不知道写什么，哪怕里面空着也行，但必须得有这个大括号
 }
+
+
+
+void SearchList::waitPending(bool pending)
+{
+    //如果还在查询，放上加载界面
+    if(pending){
+        _loadingDialog = new LoadingDlg(this);
+        _loadingDialog->setModal(true);
+        _loadingDialog->show();
+        _send_pending = pending;
+    }else{
+        _loadingDialog->hide();
+        _loadingDialog->deleteLater();
+        _send_pending = pending;
+    }
+}
 void SearchList::slot_user_search(std::shared_ptr<SearchInfo> info)
 {
-    // 这里写接收到搜索结果后的处理逻辑
+    //先bu等待
+    waitPending(false);
+    if(info==nullptr){
+        _find_dlg = std::make_shared<FindSuccessDlg>(this);
+    }
+    else{
+        //此处分两种情况，一种是搜多到已经是自己的朋友了，一种是未添加好友
+        //查找是否已经是好友 todo.
+        _find_dlg = std::make_shared<FindSuccessDlg>(this);
+        std::dynamic_pointer_cast<FindSuccessDlg>(_find_dlg)->SetSearchInfo(info);
+    }
+    _find_dlg->show();
+    return;
 }

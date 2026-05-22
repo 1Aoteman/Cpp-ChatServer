@@ -46,11 +46,11 @@ std::shared_ptr<UserInfo> MysqlDao::getUser(int uid)
 MysqlDao::MysqlDao()
 {
 	auto& conf = ConfigMgr::Inst();
-	std::string host = conf["MySql"]["Host"];
-	std::string port = conf["MySql"]["Port"];
-	std::string user = conf["MySql"]["User"];
-	std::string passwd = conf["MySql"]["PassWd"];
-	std::string schema = conf["MySql"]["Schema"];
+	std::string host = conf["Mysql"]["Host"];
+	std::string port = conf["Mysql"]["Port"];
+	std::string user = conf["Mysql"]["User"];
+	std::string passwd = conf["Mysql"]["Passwd"];
+	std::string schema = conf["Mysql"]["Schema"];
 	_pool.reset(new MysqlConPool(5, host + ":" + port, user, passwd, schema));
 }
 MysqlDao::~MysqlDao()

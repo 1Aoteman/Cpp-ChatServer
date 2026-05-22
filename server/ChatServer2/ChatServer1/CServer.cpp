@@ -1,5 +1,6 @@
 #include "CServer.h"
 #include "AsioIOServicePool.h"
+#include "UserMgr.h"
 CServer::CServer(boost::asio::io_context& ioc, short port) :_ioc(ioc),_port(port),
 _acceptor(ioc,tcp::endpoint(tcp::v4(),port))
 {
@@ -18,7 +19,7 @@ void CServer::StartAccept() {
 			std::cout << "测试一下" << std::endl;
 			//如果没有错误，Csession处理
 			newsession->Start();
-			_sessions.insert(std::make_pair(newsession->GetUuid(), newsession));
+			_sessions.insert(std::make_pair(newsession->GetSessionId(), newsession));
 			//循环调用
 			StartAccept();
 
@@ -30,5 +31,9 @@ void CServer::StartAccept() {
 }
 void CServer::ClearSession(std::string uuid)
 {
+	if (_sessions.find(uuid) != _sessions.end())
+	{
+		UserMgr::GetInstance()->RevUserSession(_sessions[uuid]->GetUserId());
+	}
 	_sessions.erase(uuid);
 }

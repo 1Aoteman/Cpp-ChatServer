@@ -72,7 +72,7 @@ void LoginDialog::slot_tcp_finish(bool success)
         jsonobj["token"] = _token;
 
         QJsonDocument doc(jsonobj);
-        QString jsonString = doc.toJson(QJsonDocument::Indented);
+        QByteArray jsonString = doc.toJson(QJsonDocument::Indented);
         TcpMgr::GetInstance()->sig_send_data(ReqId::ID_CHAT_LOGIN,jsonString);
     }else{
         qDebug()<<"网络错误";

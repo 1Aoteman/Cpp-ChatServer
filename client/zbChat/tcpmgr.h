@@ -27,14 +27,15 @@ private:
     QMap<ReqId,std::function<void(ReqId id, int len, QByteArray data)>> _handler;
 signals:
     void sig_con_success(bool success);
-    void sig_send_data(ReqId id,QString data);
+    void sig_send_data(ReqId id,QByteArray data);
     void sig_login_failed(int err);
     void sig_swich_chatdlg();
     void sig_user_search(std::shared_ptr<SearchInfo>);
     void sig_auth_rsp(std::shared_ptr<AuthRsp>);
+
 public slots:
     void slot_tcp_con(ServerInfo &si);
-    void slot_send_data(ReqId id,QString data);
+    void slot_send_data(ReqId id,QByteArray data);
 };
 
 #endif // TCPMGR_H

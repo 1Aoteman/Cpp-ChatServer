@@ -23,6 +23,7 @@ private:
 	std::condition_variable _cond;
 	std::mutex _mutex;
 	std::queue<std::shared_ptr<LogicNode>> _msg_que;
-	std::map<int, std::shared_ptr<UserInfo>> _users;
+	//用来获取用户基本信息，先去redis中找，找不到再去数据库中找
+	bool GetBaseInfo(std::string user_base_key, int uid, std::shared_ptr<UserInfo>& userinfo);
 };
 
