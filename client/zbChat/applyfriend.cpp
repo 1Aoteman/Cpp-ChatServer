@@ -381,6 +381,28 @@ void ApplyFriend::SlotApplyCancel()
 void ApplyFriend::SlotApplySure()
 {
     qDebug()<<"Slot Apply Sure called" ;
+    QJsonObject jsonobj;
+    auto uid = UserMgr::GetInstance()->GetUId();
+    jsonobj["uid"] = uid;
+    //谁申请
+    auto name = ui->name_ed->text();
+
+    if(name.isEmpty()){
+        name = ui->name_ed->placeholderText();
+    }
+    jsonobj["applyname"] = name;
+    //谁接收
+    auto b_name =ui->back_ed->text();
+    if(b_name.isEmpty()){
+        b_name = ui->back_ed->placeholderText();
+    }
+    jsonobj["backname"] = b_name;
+    jsonobj["touid"] =_si->_uid;
+
+    QJsonDocument jsondoc(jsonobj);
+    QByteArray data = jsondoc.toJson(QJsonDocument::Compact);
+    //发送tcp申请添加朋友请求
+    emit TcpMgr::GetInstance()->sig_send_data(ReqId::ID_ADD_FRIEND_REQ,data);
     this->hide();
     deleteLater();
 }

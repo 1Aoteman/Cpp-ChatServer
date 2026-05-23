@@ -8,7 +8,7 @@ QString UserMgr::GetName(){
 
 int UserMgr::GetUId()
 {
-
+    return _uid;
 }
 void UserMgr::SetName(QString name)
 {

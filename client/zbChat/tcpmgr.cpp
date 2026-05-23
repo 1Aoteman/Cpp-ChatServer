@@ -101,6 +101,34 @@ void TcpMgr::inithandler()
                                                         jsonobj["desc"].toString(), jsonobj["sex"].toInt(), jsonobj["icon"].toString());
         emit sig_user_search(search_info);
     });
+    _handler.insert(ID_NOTIFY_ADD_FRIEND_REQ,[this](ReqId id, int len, QByteArray data){
+        QJsonDocument jsondoc = QJsonDocument::fromJson(data);
+        if(jsondoc.isNull()){
+            qDebug() << "Failed to create QJsonDocument.";
+            return;
+        }
+        QJsonObject jsonobj =jsondoc.object();
+        if(!jsonobj.contains("error")){
+            int err = ErrorCodes::ERR_JSON;
+            qDebug() << "Add friend Failed, err is Json Parse Err" << err ;
+            //这里应该发送查询失败信号
+            return;
+        }
+        int err = jsonobj["error"].toInt();
+        if(err != ErrorCodes::SUCCESS){
+            qDebug() << "Add friend Failed, err is " << err ;
+            return;
+        }
+        int from_uid = jsonobj["applyuid"].toInt();
+        QString name = jsonobj["name"].toString();
+        QString desc = jsonobj["desc"].toString();
+        QString icon = jsonobj["icon"].toString();
+        QString nick = jsonobj["nick"].toString();
+        int sex = jsonobj["sex"].toInt();
+        auto apply_info = std::make_shared<ApplyInfo>(from_uid,name,desc,icon,nick,sex);
+
+        emit sig_friend_apply(apply_info);
+    });
 }
 
 void TcpMgr::dealmsg(ReqId id, int len, QByteArray data)
