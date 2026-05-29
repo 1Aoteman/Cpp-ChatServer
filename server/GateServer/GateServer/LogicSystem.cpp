@@ -202,6 +202,7 @@ LogicSystem::LogicSystem()
 		return true;
 		});
 	RegPost("/user_login", [](std::shared_ptr<HttpConnection> conn) {
+		std::cout << "用户开始登录" << std::endl;
 			std::string body_str = beast::buffers_to_string(conn->_request.body().data());
 			//设置回复
 			conn->_response.set(http::field::content_type, "text/json");

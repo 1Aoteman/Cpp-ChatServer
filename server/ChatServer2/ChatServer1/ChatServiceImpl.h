@@ -4,6 +4,7 @@
 #include "message.pb.h"
 #include <mutex>
 #include "data.h"
+#include "json/json.h"
 #include "CServer.h"
 #include <memory>
 using grpc::Server;
@@ -28,7 +29,8 @@ class ChatServiceImpl final:public ChatService::Service
 public:
 	ChatServiceImpl();
 	Status NotifyAddFriend(ServerContext* context, const AddFriendReq* request, AddFriendRsp* reply) override;
+	Status NotifyAuthFriend(ServerContext* context, const AuthFriendReq* request, AuthFriendRsp* reply) override;
 private:
-
+	bool GetBaseInfo(std::string user_base_key, int uid, std::shared_ptr<UserInfo>& userinfo);
 };
 

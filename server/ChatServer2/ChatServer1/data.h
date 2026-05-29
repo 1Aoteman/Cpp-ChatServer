@@ -12,3 +12,17 @@ struct UserInfo {
 	std::string icon;
 	std::string back;
 };
+struct ApplyInfo {
+	ApplyInfo(int uid, std::string name, std::string nick, std::string desc, int sex, std::string icon, int status) :_uid(uid),
+		_name(name),_nick(nick),_desc(desc),_sex(sex),_icon(icon),_status(status)
+	{
+
+	}
+	int _uid;
+	std::string _name;
+	std::string _nick;
+	std::string _desc;
+	int _sex;
+	std::string _icon;
+	int _status;
+};

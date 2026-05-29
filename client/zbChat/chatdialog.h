@@ -6,6 +6,7 @@
 #include "chatuserwid.h"
 #include "statewidget.h"
 #include "applyfriend.h"
+#include "QListWidgetItem"
 
 namespace Ui {
 class ChatDialog;
@@ -25,12 +26,15 @@ public slots:
     void slot_side_chat();
     void slot_text_changed(const QString &str);
     void slot_side_contract();
+    void slot_auth_rsp(std::shared_ptr<AuthRsp> authrsp);
+    void slot_add_auth_friend(std::shared_ptr<AuthInfo> auth_info);
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void handleGlobalMousePress(QMouseEvent *event);
 private slots:
     void on_btnAdd_clicked();
-
+    void slot_appply_friend(std::shared_ptr<AddFriendApply> apply);
+    void slot_item_clicked(QListWidgetItem* item);
 private:
     void ShowSearch(bool bsearch =false);
     ChatUIMode _mode;
@@ -41,7 +45,8 @@ private:
     void addChatUserList();
     QList<StateWidget*> _lb_list;
     QWidget* _last_widget;
-
+    //使用map或者hash，当有人发消息是就可以轻松找到对应的，并展示出来
+    QMap<int, QListWidgetItem*> _chat_items_added;
     std::vector<QString>  strs ={"hello world !",
                                  "nice to meet u",
                                  "New year，new life",

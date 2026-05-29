@@ -29,6 +29,12 @@ ChatPage::~ChatPage()
     delete ui;
 }
 
+void ChatPage::SetUserInfo(std::shared_ptr<UserInfo> userinfo)
+{
+    _user_info = userinfo;
+    ui->title_lb->setText(userinfo->_name);
+}
+
 void ChatPage::on_send_btn_clicked()
 {
     auto pTextEdit = ui->chat_text_edit;

@@ -125,12 +125,15 @@ bool MySqlDao::Checkpwd(const std::string& name, const std::string& pwd,UserInfo
             break;
         }
         if (origin_pwd != pwd) {
+            //注意一定要归还连接
+            _pool->returnconnection(std::move(conn));
             return false;
         }
         userInfo.name = name;
         userInfo.email = res->getString("email");
         userInfo.uid = res->getInt("uid");
         userInfo.pwd = origin_pwd;
+        _pool->returnconnection(std::move(conn));
         return true;
     }
     catch (sql::SQLException& e) {

@@ -127,6 +127,11 @@ class MysqlDao
 public:
 	std::shared_ptr<UserInfo> getUser(int uid);
 	std::shared_ptr<UserInfo> getUser(std::string name);
+	bool addfriendApply(int from, int to);
+	bool getApplyList(int touid, std::vector<std::shared_ptr<ApplyInfo>>& _apply_list,int begin, int limit);
+	bool getFriendList(int self_id, std::vector<std::shared_ptr<UserInfo>>& user_list);
+	bool authFriendApply(int from_uid, int to_uid);
+	bool addFriend(int from_uid, int to_uid, std::string& back_name);
 	MysqlDao();
 	~MysqlDao();
 private:

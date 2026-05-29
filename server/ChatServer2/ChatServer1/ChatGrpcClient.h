@@ -91,9 +91,11 @@ private:
 //设计为单例类，
 class ChatGrpcClient:public Singleton<ChatGrpcClient>
 {
+	friend class Singleton<ChatGrpcClient>;
 public:
 	~ChatGrpcClient();
 	AddFriendRsp NotifyAddFriend(std::string server_ip, const AddFriendReq& req);
+	AuthFriendRsp NotifyAuthFriend(std::string server_ip, const AuthFriendReq& req);
 private:
 	ChatGrpcClient();
 	//使用map来管理//分布式有两个聊天服务齐，可能会向不同的服务器发送消息;
