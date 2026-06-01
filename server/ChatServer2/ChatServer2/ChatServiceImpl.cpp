@@ -74,6 +74,34 @@ Status ChatServiceImpl::NotifyAuthFriend(ServerContext* context, const AuthFrien
 	return Status::OK;
 	return Status();
 }
+Status ChatServiceImpl::NotifyTextChatMsg(ServerContext* context, const TextChatMsgReq* request, TextChatMsgRsp* reply)
+{
+	//检查用户是否在内存中
+	int to_uid = request->touid();
+	auto session = UserMgr::GetInstance()->GetSession(to_uid);
+	reply->set_error(ErrorCodes::Success);
+	if (session == nullptr) {
+
+		return Status::OK;
+	}
+	Json::Value rtvalue;
+	rtvalue["error"] = ErrorCodes::Success;
+	rtvalue["fromuid"] = request->fromuid();
+	rtvalue["touid"] = to_uid;
+	//将聊天数据组织为数组
+	Json::Value text_array;
+	for (auto& msg : request->textmsgs()) {
+		Json::Value element;
+		element["content"] = msg.msgcontent();
+		element["msgid"] = msg.msgid();
+		text_array.append(element);
+	}
+	rtvalue["text_array"] = text_array;
+	std::string return_str = rtvalue.toStyledString();
+	session->Send(return_str, ID_NOTIFY_TEXT_CHAT_MSG_REQ);
+	return Status::OK;
+
+}
 bool ChatServiceImpl::GetBaseInfo(std::string user_base_key, int uid, std::shared_ptr<UserInfo>& userinfo) {
 
 	std::cout << "执行到了redis验证环节" << std::endl;

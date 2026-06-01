@@ -19,9 +19,12 @@ public:
     void SetUid(int uid);
     void SetToken(QString token);
     void SetUserInfo(std::shared_ptr<UserInfo> userinfo);
+    std::shared_ptr<UserInfo> GetUserInfo();
     std::vector<std::shared_ptr<ApplyInfo>> GetApplyList();
+    std::vector<std::shared_ptr<FriendInfo>> GetFriedList();
     void AppendApplyList(QJsonArray array);
     void AppendFriendList(QJsonArray array);
+    void AppendFriendChatMsg(int uid,std::vector<std::shared_ptr<TextChatData>> msg);
     //判断是否已经发送了申请
     bool AlreadyApply(int uid);
     //发送的申请保存在内存中,这段逻辑可以使用map来保证速度，也可以两个都用
@@ -30,7 +33,7 @@ public:
     bool CheckFriendById(int uid);
     void AddFriend(std::shared_ptr<AuthRsp> authrsp);
     void AddFriend(std::shared_ptr<AuthInfo> authinfo);
-
+    std::shared_ptr<FriendInfo> GetFriendById(int uid);
 private:
     UserMgr();
     QString _name;

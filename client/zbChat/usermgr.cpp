@@ -26,9 +26,19 @@ void UserMgr::SetUserInfo(std::shared_ptr<UserInfo> userinfo){
     _user_info =userinfo;
 
 }
+
+std::shared_ptr<UserInfo> UserMgr::GetUserInfo()
+{
+    return _user_info;
+}
 std::vector<std::shared_ptr<ApplyInfo> > UserMgr::GetApplyList()
 {
     return _apply_list;
+}
+
+std::vector<std::shared_ptr<FriendInfo> > UserMgr::GetFriedList()
+{
+    return _friend_list;
 }
 
 void UserMgr::AppendApplyList(QJsonArray array)
@@ -67,11 +77,27 @@ void UserMgr::AppendFriendList(QJsonArray array)
     }
 }
 
+void UserMgr::AppendFriendChatMsg(int uid, std::vector<std::shared_ptr<TextChatData>> msg)
+{
+    auto find_iter = _friend_map.find(uid);
+    if(find_iter==_friend_map.end()){
+        qDebug()<<"invalid friend uid";
+        return;
+    }
+    find_iter.value()->AppendChatMsgs(msg);
+}
+
 void UserMgr::AddApplyList(std::shared_ptr<ApplyInfo> app)
 {
     _apply_list.push_back(app);
 }
-
+std::shared_ptr<FriendInfo> UserMgr::GetFriendById(int uid){
+    auto find_iter = _friend_map.find(uid);
+    if(find_iter==_friend_map.end()){
+        return nullptr;
+    }
+    return find_iter.value();
+}
 bool UserMgr::CheckFriendById(int uid)
 {
     auto find_iter = _friend_map.find(uid);

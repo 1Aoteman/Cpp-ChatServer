@@ -123,13 +123,13 @@ bool RedisMgr::LPop(const std::string& key, std::string& value) {
         return false;
     }
     auto reply = (redisReply*)redisCommand(connect, "LPOP %s ", key.c_str());
-    if (_reply == nullptr || _reply->type == REDIS_REPLY_NIL) {
+    if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
         std::cout << "Execut command [ LPOP " << key << " ] failure ! " << std::endl;
         freeReplyObject(reply);
         _con_pool->returnConn(connect);//还连接
         return false;
     }
-    value = _reply->str;
+    value = reply->str;
     std::cout << "Execut command [ LPOP " << key << " ] success ! " << std::endl;
     freeReplyObject(reply);
     _con_pool->returnConn(connect);//还连接
@@ -165,13 +165,13 @@ bool RedisMgr::RPop(const std::string& key, std::string& value) {
         return false;
     }
     auto reply = (redisReply*)redisCommand(connect, "RPOP %s ", key.c_str());
-    if (_reply == nullptr || _reply->type == REDIS_REPLY_NIL) {
+    if (reply == nullptr || reply->type == REDIS_REPLY_NIL) {
         std::cout << "Execut command [ RPOP " << key << " ] failure ! " << std::endl;
         freeReplyObject(reply);
         _con_pool->returnConn(connect);//还连接
         return false;
     }
-    value = _reply->str;
+    value = reply->str;
     std::cout << "Execut command [ RPOP " << key << " ] success ! " << std::endl;
     freeReplyObject(reply);
     _con_pool->returnConn(connect);//还连接
@@ -184,7 +184,7 @@ bool RedisMgr::HSet(const std::string& key, const std::string& hkey, const std::
         return false;
     }
     auto reply = (redisReply*)redisCommand(connect, "HSET %s %s %s", key.c_str(), hkey.c_str(), value.c_str());
-    if (_reply == nullptr || _reply->type != REDIS_REPLY_INTEGER) {
+    if (reply == nullptr || reply->type != REDIS_REPLY_INTEGER) {
         std::cout << "Execut command [ HSet " << key << "  " << hkey << "  " << value << " ] failure ! " << std::endl;
         freeReplyObject(reply);
         _con_pool->returnConn(connect);//还连接
@@ -212,7 +212,7 @@ bool RedisMgr::HSet(const char* key, const char* hkey, const char* hvalue, size_
         return false;
     }
     auto reply = (redisReply*)redisCommandArgv(connect, 4, argv, argvlen);
-    if (_reply == nullptr || _reply->type != REDIS_REPLY_INTEGER) {
+    if (reply == nullptr || reply->type != REDIS_REPLY_INTEGER) {
         std::cout << "Execut command [ HSet " << key << "  " << hkey << "  " << hvalue << " ] failure ! " << std::endl;
         freeReplyObject(reply);
         _con_pool->returnConn(connect);//还连接
@@ -292,7 +292,7 @@ void RedisMgr::Close()
 }
 
 RedisConPool::RedisConPool(size_t poolsize, const char* host, int port, const char* pwd) :
-    _pool_size(poolsize),_host(host),_port(port),_b_stop(false)
+    _pool_size(poolsize), _host(host), _port(port), _b_stop(false)
 {
     for (int i = 0; i < poolsize; i++)
     {
@@ -334,13 +334,13 @@ redisContext* RedisConPool::Getconnect()
         }
         return !_connections.empty();
         });
-        if(_b_stop)
-        {
-            return nullptr;
-        }
-        auto *context = _connections.front();
-        _connections.pop();
-        return context;
+    if (_b_stop)
+    {
+        return nullptr;
+    }
+    auto* context = _connections.front();
+    _connections.pop();
+    return context;
 }
 void RedisConPool::returnConn(redisContext* context)
 {

@@ -21,6 +21,7 @@ public:
     ~ChatDialog();
     void AddLBGroup(StateWidget *lb);
     void ClearLabelState(StateWidget *lb);
+    void UpdateChatMsg(std::vector<std::shared_ptr<TextChatData> > msgdata);
 public slots:
     void slot_loading_chat_user();
     void slot_side_chat();
@@ -28,6 +29,8 @@ public slots:
     void slot_side_contract();
     void slot_auth_rsp(std::shared_ptr<AuthRsp> authrsp);
     void slot_add_auth_friend(std::shared_ptr<AuthInfo> auth_info);
+    void slot_append_send_chat_msg(std::shared_ptr<TextChatData> chatmsg);
+    void slot_text_chat_msg(std::shared_ptr<TextChatMsg> msg);
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void handleGlobalMousePress(QMouseEvent *event);
@@ -41,6 +44,7 @@ private:
     ChatUIMode _state;
     bool _b_loading;
     Ui::ChatDialog *ui;
+    int _cur_chat_uid;
     //测试数据
     void addChatUserList();
     QList<StateWidget*> _lb_list;

@@ -72,11 +72,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>D:\SoftWare\C++\boost_1_90_0;D:\SoftWare\C++\mysql-connector-debug\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\SoftWare\C++\boost_1_90_0\stage\lib;D:\SoftWare\C++\mysql-connector-debug\lib64\vs14\debug;$(LibraryPath)</LibraryPath>
+    <LibraryPath>D:\SoftWare\C++\vcpkg\packages\protobuf_x64-windows\debug\lib;D:\SoftWare\C++\boost_1_90_0\stage\lib;D:\SoftWare\C++\mysql-connector-debug\lib64\vs14\debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>D:\SoftWare\C++\boost_1_90_0;D:\SoftWare\C++\mysql-connector-debug\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\SoftWare\C++\boost_1_90_0\stage\lib;D:\SoftWare\C++\mysql-connector-debug\lib64\vs14\debug;$(LibraryPath)</LibraryPath>
+    <LibraryPath>D:\SoftWare\C++\vcpkg\packages\protobuf_x64-windows\lib;D:\SoftWare\C++\boost_1_90_0\stage\lib;D:\SoftWare\C++\mysql-connector-debug\lib64\vs14\debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -116,7 +116,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>mysqlcppconn.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mysqlcppconn.lib;libprotobufd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)config.ini" "$(OutDir)" /y
@@ -137,7 +137,7 @@ xcopy "$(ProjectDir)*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\" /y</Com
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>mysqlcppconn.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mysqlcppconn.lib;libprotobuf.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(ProjectDir)config.ini" "$(OutDir)" /y

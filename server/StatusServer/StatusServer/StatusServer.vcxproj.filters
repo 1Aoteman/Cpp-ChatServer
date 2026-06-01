@@ -36,10 +36,10 @@
     <ClCompile Include="MySqlMgr.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="RedisMgr.cpp">
+    <ClCompile Include="AsioIoServicePool.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="AsioIoServicePool.cpp">
+    <ClCompile Include="RedisMgr.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

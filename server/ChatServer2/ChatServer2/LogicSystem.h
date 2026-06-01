@@ -16,6 +16,7 @@ public:
 	void InitCallBack();
 	void PostMsgToQue(std::shared_ptr<LogicNode> logicnode);
 	void DealMsg();
+	void DealChatTextMsg(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 	void AddFriendApply(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 	void AuthFriendApply(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 	bool isPureDigit(std::string str);

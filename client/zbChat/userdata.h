@@ -1,7 +1,10 @@
 #ifndef USERDATA_H
 #define USERDATA_H
 #include <QString>
-
+#include <memory>
+#include <QJsonArray>
+#include <vector>
+#include <QJsonObject>
 class SearchInfo {
 public:
     SearchInfo(int uid, QString name, QString nick, QString desc, int sex,QString icon);
@@ -140,6 +143,31 @@ struct UserInfo {
     QString _last_msg;
     std::vector<std::shared_ptr<TextChatData>> _chat_msgs;
 };
+struct TextChatData{
+    TextChatData(QString msg_id,QString msg_content,int from_uid,int to_uid):
+        _msg_id(msg_id),_msg_content(msg_content),_from_uid(from_uid),_to_uid(to_uid){}
+    QString _msg_id;
+    QString _msg_content;
+    int _from_uid;
+    int _to_uid;
+};
+struct TextChatMsg{
+    TextChatMsg(int fromuid,int touid,QJsonArray array):
+        _from_uid(fromuid),_to_uid(touid)
+    {
+        for(const auto& msg_data : array){
+            auto msg_obj = msg_data.toObject();
+            auto content = msg_obj["content"].toString();
+            auto msgid = msg_obj["msgid"].toString();
+            auto msg_ptr = std::make_shared<TextChatData>(msgid, content,fromuid, touid);
+            _chat_msgs.push_back(msg_ptr);
+        }
+    }
+    int _from_uid;
+    int _to_uid;
+    std::vector<std::shared_ptr<TextChatData>> _chat_msgs;
+};
+
 //测试数据
 const std::vector<QString>  strs ={"hello world !",
                                    "nice to meet u",

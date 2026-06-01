@@ -13,8 +13,8 @@ int main()
     auto& conf = ConfigMgr::Inst();
     auto server_name = conf["SelfServer"]["Name"];
     try {
-        
-        RedisMgr::GetInstance()->HSet(LOGIN_COUNT,server_name,"0");
+
+        RedisMgr::GetInstance()->HSet(LOGIN_COUNT, server_name, "0");
         //创捷grpc服务
         std::string server_address = conf["SelfServer"]["Host"] + ":" + conf["SelfServer"]["RPCPort"];
         ChatServiceImpl service;
@@ -33,7 +33,7 @@ int main()
         auto pool = AsioIOServicePool::GetInstance();
         boost::asio::io_context ioc;
         boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
-        signals.async_wait([&ioc, pool,&server](const boost::system::error_code& error, int signal_number) {
+        signals.async_wait([&ioc, pool, &server](const boost::system::error_code& error, int signal_number) {
             pool->Stop();
             ioc.stop();
             server->Shutdown();
@@ -51,6 +51,6 @@ int main()
         std::cout << "exception code is" << e.what() << std::endl;
     }
 }
-   
+
 
 

@@ -7,6 +7,9 @@
 #include "textbubble.h"
 #include "picturebubble.h"
 #include "userdata.h"
+#include "usermgr.h"
+#include <QJsonObject>
+#include <QJsonDocument>
 namespace Ui {
 class ChatPage;
 }
@@ -19,9 +22,11 @@ public:
     explicit ChatPage(QWidget *parent = nullptr);
     ~ChatPage();
     void SetUserInfo(std::shared_ptr<UserInfo> userinfo);
+    void AppendChatMsg(std::shared_ptr<TextChatData> msg);
 private slots:
     void on_send_btn_clicked();
-
+signals:
+    void sig_append_send_chat_msg(std::shared_ptr<TextChatData>);
 private:
     Ui::ChatPage *ui;
     void paintEvent(QPaintEvent *event);

@@ -42,9 +42,6 @@
     <ClCompile Include="IoServicePool.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="RedisMgr.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="MySqlDao.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -52,6 +49,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="StatusGrpcClient.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="RedisMgr.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

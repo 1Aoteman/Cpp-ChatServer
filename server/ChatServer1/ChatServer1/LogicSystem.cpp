@@ -45,6 +45,9 @@ void LogicSystem::InitCallBack()
 	//用来验证朋友申请
 	_fun_callbacks[MSG_IDS::ID_AUTH_FRIEND_REQ] = std::bind(&LogicSystem::AuthFriendApply, this,
 		std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	//处理发送的消息
+	_fun_callbacks[MSG_IDS::ID_TEXT_CHAT_MSG_REQ] = std::bind(&LogicSystem::DealChatTextMsg, this,
+		std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 }
 void LogicSystem::PostMsgToQue(std::shared_ptr<LogicNode> logicnode)
 {
@@ -102,6 +105,66 @@ void LogicSystem::DealMsg()
 		_msg_que.pop();
 	}
 
+}
+void LogicSystem::DealChatTextMsg(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
+{
+	Json::Value root;
+	Json::Reader reader;
+	bool b_parse = reader.parse(msg_data, root);
+	
+	int from_uid = root["from_uid"].asInt();
+	int to_uid = root["to_uid"].asInt();
+	const Json::Value array = root["text_array"];
+
+	Json::Value rtvalue;
+	rtvalue["error"] = ErrorCodes::Success;
+	rtvalue["fromuid"] = from_uid;
+	rtvalue["touid"] = to_uid;
+	rtvalue["text_array"] = array;
+	//使用defer肯定发送消息
+	Defer defer([&rtvalue,&session] {
+		std::string return_str = rtvalue.toStyledString();
+		session->Send(return_str, MSG_IDS::ID_TEXT_CHAT_MSG_RSP);
+		});
+	//去redis中查找对象的服务器ip
+	std::string base_ip_key = USERIPPREFIX + std::to_string(to_uid);
+	std::string to_ip_value = "";
+	bool b_ip = RedisMgr::GetInstance()->Get(base_ip_key, to_ip_value);
+	if (!b_ip) {
+		return;
+	}
+	auto& cfg = ConfigMgr::Inst();
+	auto self_name = cfg["SelfServer"]["Name"];
+	std::cout << "to_ip_value=[" << to_ip_value << "] self_name=[" << self_name << "]" << std::endl;
+	//直接通知对方有认证通过消息
+	if (self_name == to_ip_value) {
+		//找到对象的session
+		auto to_session = UserMgr::GetInstance()->GetSession(to_uid);
+		if (to_session) {
+			//在内存中则直接发送通知对方
+			std::string return_str = rtvalue.toStyledString();
+			to_session->Send(return_str, ID_NOTIFY_TEXT_CHAT_MSG_REQ);
+		}
+		return;
+	}
+	//不在同一个服务器中使用grpc
+	TextChatMsgReq req;
+	req.set_fromuid(from_uid);
+	req.set_touid(to_uid);
+	//从中取出所有的消息
+	for (const auto& txt_obj : array) {
+		auto msg_id = txt_obj["msgid"].asString();
+		auto msg_content = txt_obj["content"].asString();
+		
+		std::cout << "content is " << msg_content << std::endl;
+		std::cout << "msgid is " << msg_id << std::endl;
+		auto* text_msg = req.add_textmsgs();
+		text_msg->set_msgid(msg_id);
+		text_msg->set_msgcontent(msg_content);
+	}
+	//传入rtvalue用来判断是否失败
+	ChatGrpcClient::GetInstance()->NotifyTextChatMsg(to_ip_value, req, rtvalue);
+	std::cout << "使用了grpc" << std::endl;
 }
 //处理登录逻辑
 void LogicSystem::LoginHandler(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)

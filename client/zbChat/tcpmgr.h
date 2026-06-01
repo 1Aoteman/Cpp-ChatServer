@@ -34,6 +34,7 @@ signals:
     void sig_auth_rsp(std::shared_ptr<AuthRsp>);
     void sig_add_auth_friend(std::shared_ptr<AuthInfo> auth_info);
     void sig_friend_apply(std::shared_ptr<AddFriendApply>);
+    void sig_text_chat_msg(std::shared_ptr<TextChatMsg>);
 public slots:
     void slot_tcp_con(ServerInfo &si);
     void slot_send_data(ReqId id,QByteArray data);

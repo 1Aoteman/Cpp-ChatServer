@@ -30,6 +30,7 @@ public:
 	ChatServiceImpl();
 	Status NotifyAddFriend(ServerContext* context, const AddFriendReq* request, AddFriendRsp* reply) override;
 	Status NotifyAuthFriend(ServerContext* context, const AuthFriendReq* request, AuthFriendRsp* reply) override;
+	Status NotifyTextChatMsg(ServerContext* context, const TextChatMsgReq* request, TextChatMsgRsp* reply) override;
 private:
 	bool GetBaseInfo(std::string user_base_key, int uid, std::shared_ptr<UserInfo>& userinfo);
 };
