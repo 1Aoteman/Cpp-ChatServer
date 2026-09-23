@@ -90,7 +90,7 @@ TextChatMsgRsp ChatGrpcClient::NotifyTextChatMsg(std::string server_ip, const Te
 		rsp.set_touid(req.touid());
 		for (const auto& obj : req.textmsgs()) {
 			TextChatData* chatdata = rsp.add_textmsgs();
-			chatdata->set_msgid(obj.msgid());
+			chatdata->set_msg_id(obj.msg_id());
 			chatdata->set_msgcontent(obj.msgcontent());
 		}
 		});
@@ -113,5 +113,31 @@ TextChatMsgRsp ChatGrpcClient::NotifyTextChatMsg(std::string server_ip, const Te
 		rsp.set_error(ErrorCodes::RPCFailed);
 		return rsp;
 	}
+	return rsp;
+}
+
+KickUserRsp ChatGrpcClient::NotifyKickUser(std::string server_ip, const KickUserReq& req)
+{
+	KickUserRsp rsp;
+	rsp.set_uid(req.uid());
+	
+	auto ident = _pools.find(server_ip);
+	if (ident == _pools.end()) {
+		rsp.set_error(ErrorCodes::ServeripInvalid);
+		return  rsp;
+	}
+	auto& pool = ident->second;
+	ClientContext context;
+	auto stub = pool->GetConnection();
+	//¹é»¹Á¬½Ó
+	Defer condefer([this,&stub,&pool] {
+		pool->Returnconn(std::move(stub));
+		});
+	Status status=stub->NotifyKickUser(&context, req, &rsp);
+	if (!status.ok()) {
+		rsp.set_error(ErrorCodes::GrpcNetworkError);
+		return rsp;
+	}
+	rsp.set_error(ErrorCodes::Success);
 	return rsp;
 }

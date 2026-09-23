@@ -11,6 +11,7 @@ std::string generate_unique_string() {
 
 	return unique_string;
 }
+
 StatusServerImpl::StatusServerImpl()
 {
 	auto& cfg = ConfigMgr::Inst();
@@ -86,7 +87,7 @@ ChatServer StatusServerImpl::getChatServer()
 {
 	std::lock_guard<std::mutex> guard(_mutex);
 	auto minServer = _servers.begin()->second;
-
+	//不加分布式锁，转由心跳检测用来统计
 	auto count_str = RedisMgr::GetInstance()->HGet(LOGIN_COUNT, minServer._name);
 	if (count_str.empty()) {
 		//不存在则默认设置为最大

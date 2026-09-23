@@ -1,6 +1,7 @@
 #include "RedisMgr.h"
 #include "RedisMgr.h"
 #include <iostream>
+#include "Distlock.h"
 #include "ConfigMgr.h"
 RedisMgr::RedisMgr()
 {
@@ -8,7 +9,8 @@ RedisMgr::RedisMgr()
     auto host = grpc["Redis"]["Host"];
     auto port = grpc["Redis"]["Port"];
     auto pwd = grpc["Redis"]["Passwd"];
-    _con_pool.reset(new RedisPool(5, host.c_str(), atoi(port.c_str()), pwd.c_str()));
+    //加入分布式锁也会占用redis连接，将连接池数量
+    _con_pool.reset(new RedisPool(10, host.c_str(), atoi(port.c_str()), pwd.c_str()));
 }
 RedisMgr::~RedisMgr()
 {
@@ -315,5 +317,46 @@ bool RedisMgr::ExistsKey(const std::string& key)
 void RedisMgr::Close()
 {
     _con_pool->Close();
+}
+
+std::string RedisMgr::AcquireLock(std::string lockname,int locktimeout,int acquiretime)
+{
+    auto conn = _con_pool->GetConnection();
+    if (conn == nullptr) {
+        return "";
+    }
+    Defer defer([&conn, this]() {
+        _con_pool->ReturnConnnection(std::move(conn));
+        });
+    return Distlock::Inst().acquirelock(conn,lockname, locktimeout, acquiretime);
+    
+}
+
+bool RedisMgr::Releaselock(std::string lockname, std::string identifier)
+{
+    if (identifier.empty())
+    {
+        return true;
+    }
+    auto conn = _con_pool->GetConnection();
+    if (conn == nullptr) {
+        return false;
+    }
+    Defer defer([&conn, this]() {
+        _con_pool->ReturnConnnection(std::move(conn));
+        });
+    return Distlock::Inst().releaselock(conn, lockname, identifier);
+}
+
+void RedisMgr::InitCount(std::string server_name)
+{
+    auto lock_key = LOCK_COUNT;
+    auto identifier = RedisMgr::GetInstance()->AcquireLock(lock_key, LOCK_TIME_OUT, ACQUIRE_TIME_OUT);
+    //利用defer解锁
+    Defer defer2([this, identifier, lock_key]() {
+        RedisMgr::GetInstance()->Releaselock(lock_key, identifier);
+        });
+
+    RedisMgr::GetInstance()->HSet(LOGIN_COUNT, server_name, "0");
 }
 

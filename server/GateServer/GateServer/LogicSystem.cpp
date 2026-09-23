@@ -4,6 +4,7 @@
 #include "RedisMgr.h"
 #include "MySqlMgr.h"
 #include "StatusGrpcClient.h"
+#include "ConfigMgr.h"
 bool LogicSystem::HandleGet(std::string path, std::shared_ptr<HttpConnection> connection)
 {
 	if (_get_handler.find(path) == _get_handler.end())
@@ -245,8 +246,15 @@ LogicSystem::LogicSystem()
 			root["email"] = email;
 			root["uid"] = userInfo.uid;
 			root["token"] = reply.token();
-			root["host"] = reply.host();
-			root["port"] = reply.port();
+			root["chathost"] = reply.host();
+			root["chatport"] = reply.port();
+
+			auto& gCfgMgr = ConfigMgr::Inst();
+			std::string res_port = gCfgMgr["ResServer"]["Port"];
+			std::string res_host = gCfgMgr["ResServer"]["Host"];
+			root["reshost"] = res_host;
+			root["resport"] = res_port;
+
 			std::string jsonstr = root.toStyledString();
 			std::cout << jsonstr << std::endl;
 			beast::ostream(conn->_response.body()) << jsonstr;

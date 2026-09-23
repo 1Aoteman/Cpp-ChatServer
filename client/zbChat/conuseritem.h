@@ -19,6 +19,7 @@ public:
     void SetInfo(std::shared_ptr<AuthInfo> auth_info);
     void SetInfo(std::shared_ptr<AuthRsp> auth_rsp);
     void SetInfo(int uid, QString name, QString icon);
+    std::shared_ptr<UserInfo> GetInfo();
     void ShowRedPoint(bool show = false);
 private:
     Ui::ConUserItem *ui;

@@ -5,6 +5,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <queue>
+#include "message.grpc.pb.h"
 using boost::asio::ip::tcp;
 class CServer;
 class LogicSystem;
@@ -25,9 +26,17 @@ public:
 	void Close();
 	void Send(std::string msg, int msg_id);//向客户端发送数据
 	void HandleWrite(boost::system::error_code ec);
+	void NotifyOffline(int uid);
+	//心跳检测判断是否过期
+	bool IsHeartExpired(std::time_t now);
+	//更新时间
+	void UpdateHeartTime();
+	void DealExpiredSession();
+	void NotifyChatImgRecv(const message::NotifyChatImgReq* request);
 private:
 	std::string _session_id;
 	std::queue<std::shared_ptr<SendMsgNode>> _send_que;
+	bool _b_close;
 	tcp::socket _socket;
 	CServer* _cserver;
 	//接收消息节点
@@ -35,7 +44,10 @@ private:
 	std::shared_ptr<MessageNode> _recv_head_node;
 	char _data[MAX_LENGTH];
 	std::mutex _send_mutex;
+	std::mutex _session_mtx;
 	int _user_id;
+	//上一次处理的时间
+	std::atomic<std::time_t >_last_time;
 };
 
 class LogicNode {

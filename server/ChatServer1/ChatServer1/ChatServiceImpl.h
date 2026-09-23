@@ -28,9 +28,14 @@ class ChatServiceImpl final:public ChatService::Service
 {
 public:
 	ChatServiceImpl();
+	std::shared_ptr<CServer> _p_server;
+	void RegisterServer(std::shared_ptr<CServer> pServer);
 	Status NotifyAddFriend(ServerContext* context, const AddFriendReq* request, AddFriendRsp* reply) override;
 	Status NotifyAuthFriend(ServerContext* context, const AuthFriendReq* request, AuthFriendRsp* reply) override;
 	Status NotifyTextChatMsg(ServerContext* context, const TextChatMsgReq* request, TextChatMsgRsp* reply) override;
+	Status NotifyKickUser(ServerContext* context, const KickUserReq* request, KickUserRsp* reply) override;
+	Status NotifyChatImgMsg(::grpc::ServerContext* context, const ::message::NotifyChatImgReq* request,
+		::message::NotifyChatImgRsp* response);
 private:
 	bool GetBaseInfo(std::string user_base_key, int uid, std::shared_ptr<UserInfo>& userinfo);
 };

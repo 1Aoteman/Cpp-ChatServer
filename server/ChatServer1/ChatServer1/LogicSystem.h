@@ -16,14 +16,25 @@ public:
 	void InitCallBack();
 	void PostMsgToQue(std::shared_ptr<LogicNode> logicnode);
 	void DealMsg();
+	void DealHeartBeat(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 	void DealChatTextMsg(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 	void AddFriendApply(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 	void AuthFriendApply(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
+	//搜索是判断是否是数字
 	bool isPureDigit(std::string str);
 	void GetUserByUid(std::string uid_str, Json::Value& rtroot);
 	void GetUserByName(std::string name, Json::Value& rtroot);
 	bool GetFriendApplyInfo(int uid, std::vector<std::shared_ptr<ApplyInfo>>& _apply_list);
 	bool GetFriendList(int self_id, std::vector<std::shared_ptr<UserInfo>>& user_list);
+	
+	void GetUserThreadsHandler(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
+	bool GetUserThreadsInfo(int uid, int last_thread_id, 
+		int page_size, std::vector<std::shared_ptr<ChatThreadInfo>>& threads
+		, bool& load_more, int64_t& next_last_id);
+	void CreatePrivateChat(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
+	void LoadChatMsg(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
+	void DealChatImgMsg(std::shared_ptr<CSession> session,
+		const short& msg_id, const std::string& msg_data);
 private:
 	std::map<short, FunCallBack> _fun_callbacks;
 	std::atomic<bool> _b_stop;

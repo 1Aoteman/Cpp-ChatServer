@@ -4,6 +4,7 @@
 #include "httpmgr.h"
 #include "tcpmgr.h"
 #include <QPainterPath>
+#include "filetcpmgr.h"
 LoginDialog::LoginDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::LoginDialog)
@@ -18,6 +19,9 @@ LoginDialog::LoginDialog(QWidget *parent)
     connect(this,&LoginDialog::sig_tcp_con,TcpMgr::GetInstance().get(),&TcpMgr::slot_tcp_con);
     connect(TcpMgr::GetInstance().get(),&TcpMgr::sig_con_success,this,&LoginDialog::slot_tcp_finish);
     connect(TcpMgr::GetInstance().get(), &TcpMgr::sig_login_failed, this, &LoginDialog::slot_login_failed);
+    //连接tcp连接资源服务器请求的信号和槽函数
+    connect(this, &LoginDialog::sig_connect_res_server,
+            FileTcpMgr::GetInstance().get(), &FileTcpMgr::slot_tcp_connect);
     initHead();
     inithandlers();
 }
@@ -74,6 +78,7 @@ void LoginDialog::slot_tcp_finish(bool success)
         QJsonDocument doc(jsonobj);
         QByteArray jsonString = doc.toJson(QJsonDocument::Indented);
         TcpMgr::GetInstance()->sig_send_data(ReqId::ID_CHAT_LOGIN,jsonString);
+        emit sig_connect_res_server(_si);
     }else{
         qDebug()<<"网络错误";
     }
@@ -104,18 +109,21 @@ void LoginDialog::inithandlers()
 
         QString email =jsonobj["email"].toString();
         //接受服务器端回应，收到进行聊天服务的地址等会信息
-        ServerInfo si;
-        si.Uid = jsonobj["uid"].toInt();
-        si.Host = jsonobj["host"].toString();
-        si.Port = jsonobj["port"].toString();
-        si.Token = jsonobj["token"].toString();
+        _si = std::make_shared<ServerInfo>();
+        _si->_uid = jsonobj["uid"].toInt();
+        _si->_chat_host = jsonobj["chathost"].toString();
+        _si->_chat_port = jsonobj["chatport"].toString();
+        _si->_token = jsonobj["token"].toString();
 
-        _uid = si.Uid;
-        _token = si.Token;
-        qDebug()<< "email is " << email << " uid is " << si.Uid <<" host is "
-                 << si.Host << " Port is " << si.Port << " Token is " << si.Token;
+        _si->_res_host = jsonobj["reshost"].toString();
+        _si->_res_port = jsonobj["resport"].toString();
+
+        _uid = _si->_uid;
+        _token = _si->_token;
+        qDebug()<< "email is " << email << " uid is " << _si->_uid <<" host is "
+                 << _si->_chat_host << " Port is " << _si->_chat_port << " Token is " << _si->_token;
         //收到服务器端回应，发送信号进行tcp长连接；
-        emit sig_tcp_con(si);
+        emit sig_tcp_con(_si);
     });
 }
 void LoginDialog::on_login_btn_clicked()

@@ -1,7 +1,9 @@
 #include "CSession.h"
 #include "CServer.h"
 #include "LogicSystem.h"
+#include "RedisMgr.h"
 CSession::CSession(boost::asio::io_context &ioc,CServer* server):_socket(ioc),_cserver(server)
+
 {
     // 1. 创建一个随机生成器对象
     boost::uuids::random_generator gen;
@@ -11,6 +13,7 @@ CSession::CSession(boost::asio::io_context &ioc,CServer* server):_socket(ioc),_c
      _session_id = boost::uuids::to_string(u);
      //先读完头节点，在处理剩下的
      _recv_head_node = std::make_shared<MessageNode>(HEAD_TOTAL_LEN);
+     _last_time = std::time(nullptr);
 
 }
 tcp::socket& CSession::GetSocket() {
@@ -30,7 +33,59 @@ void CSession::Start()
 {
     AsyncReadHead(HEAD_TOTAL_LEN);
 }
+void CSession::NotifyOffline(int uid) {
+    Json::Value  rtvalue;
+    rtvalue["error"] = ErrorCodes::Success;
+    rtvalue["uid"] = uid;
+    std::string return_str = rtvalue.toStyledString();
 
+    Send(return_str, ID_NOTIFY_OFF_LINE_REQ);
+    return;
+}
+bool CSession::IsHeartExpired(std::time_t now)
+{
+    double diff_time=std::difftime(now, _last_time);
+    if (diff_time > HEART_EXPIRED_TIME_OUT) {
+        std::cout << "心跳过期" << std::endl;
+        return true;
+    }
+    return false;
+}
+void CSession::UpdateHeartTime()
+{
+    std::time_t now = std::time(nullptr);
+    _last_time = now;
+}
+void CSession::DealExpiredSession()
+{
+    //加上锁防止删除错session
+    std::string uid_str = std::to_string(_user_id);
+    auto lock_key = LOCK_PREFIX + uid_str;
+    auto identifier = RedisMgr::GetInstance()->AcquireLock(lock_key, LOCK_TIME_OUT, ACQUIRE_TIME_OUT);
+    Defer defer([this, lock_key, identifier] {
+        _cserver->ClearSession(_session_id);
+        RedisMgr::GetInstance()->Releaselock(lock_key, identifier);
+        });
+    //如果没有加上锁
+    if (identifier.empty()) {
+        return;
+    }
+    std::string user_session_id = "";
+    std::string session_key = USER_SESSION_PREFIX + uid_str;
+    bool b_success = RedisMgr::GetInstance()->Get(session_key, user_session_id);
+    if (!b_success) {
+        return;
+    }
+    if (user_session_id != _session_id) {
+        //不相等说明用户已经在其他设备上登录了
+        return;
+    }
+    //否则要删除redis中的session缓存
+    RedisMgr::GetInstance()->Del(USER_SESSION_PREFIX + uid_str);
+    //清除用户登录信息
+    RedisMgr::GetInstance()->Del(USERIPPREFIX + uid_str);
+    return;
+}
 void CSession::AsyncReadHead(int head_len)
 
 {
@@ -39,10 +94,10 @@ void CSession::AsyncReadHead(int head_len)
         try {
             if (ec) {
                 std::cout << "read error is" << ec.what() << std::endl;
-                Close();
-                _cserver->ClearSession(_session_id);
-                return;
+                //出错进行删除
+                DealExpiredSession();
             }
+            
             if (bytetransfered < HEAD_TOTAL_LEN)//再次判断读到的数据头长度是否小于规定的长度
             {
                 std::cout << "read length not match..." << std::endl;
@@ -142,7 +197,9 @@ void CSession::AsyncReadlen(int read_len, int total_len,
     });
 }
 void CSession::Close() {
+    std::lock_guard<std::mutex> lock(_session_mtx);
     _socket.close();
+    _b_close = true;
 }
 
 void CSession::Send(std::string msg,int msg_id)
@@ -186,6 +243,21 @@ void CSession::HandleWrite(boost::system::error_code ec) {
     catch (std::exception& e) {
         std::cout << "exception is" << e.what() << std::endl;
     }
+}
+void CSession::NotifyChatImgRecv(const ::message::NotifyChatImgReq* request) {
+    Json::Value  rtvalue;
+    rtvalue["error"] = ErrorCodes::Success;
+    rtvalue["message_id"] = request->message_id();
+    rtvalue["sender_id"] = request->from_uid();
+    rtvalue["receiver_id"] = request->to_uid();
+    rtvalue["img_name"] = request->file_name();
+    rtvalue["total_size"] = std::to_string(request->total_size());
+    rtvalue["thread_id"] = request->thread_id();
+
+    std::string return_str = rtvalue.toStyledString();
+    //通知图片聊天信息
+    Send(return_str, ID_NOTIFY_IMG_CHAT_MSG_REQ);
+    return;
 }
 LogicNode::LogicNode(std::shared_ptr<CSession> session, std::shared_ptr<RecvMsgNode> recvnode):_session(session),
 _recv_node(recvnode)

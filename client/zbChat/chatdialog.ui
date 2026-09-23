@@ -107,21 +107,37 @@
            </property>
           </widget>
          </item>
+         <item>
+          <widget class="StateWidget" name="side_setting_lb" native="true">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
         </layout>
        </widget>
-      </item>
-      <item>
-       <spacer name="verticalSpacer_sidebar">
-        <property name="orientation">
-         <enum>Qt::Orientation::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
       </item>
      </layout>
     </widget>
@@ -221,7 +237,9 @@
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
      <widget class="ChatPage" name="chat_page"/>
+     <widget class="UserInfoPage" name="user_info_page"/>
      <widget class="ApplyFriendPage" name="friend_apply_page"/>
+     <widget class="FriendInfoPage" name="friend_info_page"/>
     </widget>
    </item>
   </layout>
@@ -268,6 +286,18 @@
    <class>ApplyFriendPage</class>
    <extends>QWidget</extends>
    <header location="global">applyfriendpage.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>FriendInfoPage</class>
+   <extends>QWidget</extends>
+   <header>friendinfopage.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>UserInfoPage</class>
+   <extends>QWidget</extends>
+   <header>userinfopage.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

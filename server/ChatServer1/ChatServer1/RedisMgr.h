@@ -94,6 +94,9 @@ public:
     bool Del(const std::string& key);
     bool ExistsKey(const std::string& key);
     void Close();
+    std::string AcquireLock(std::string lockname,int locktimeout,int acquiretime);
+    bool Releaselock(std::string lockname, std::string identifier);
+    void InitCount(std::string server_name);
 private:
     RedisMgr();
     redisContext* _connect;

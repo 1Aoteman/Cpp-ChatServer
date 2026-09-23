@@ -6,6 +6,8 @@
 #include "UserMgr.h"
 #include "data.h"
 #include "ChatGrpcClient.h"
+#include "message.pb.h"
+#include "Utils.h"
 LogicSystem::LogicSystem():_b_stop(false)
 {
 	InitCallBack();
@@ -47,6 +49,17 @@ void LogicSystem::InitCallBack()
 		std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 	//处理发送的消息
 	_fun_callbacks[MSG_IDS::ID_TEXT_CHAT_MSG_REQ] = std::bind(&LogicSystem::DealChatTextMsg, this,
+		std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	//心跳检测处理逻辑
+	_fun_callbacks[MSG_IDS::ID_HEART_BEAT_REQ] = std::bind(&LogicSystem::DealHeartBeat, this,
+		std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	_fun_callbacks[MSG_IDS::ID_LOAD_CHAT_THREAD_REQ]=std::bind(&LogicSystem::GetUserThreadsHandler, this,
+		std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	_fun_callbacks[ID_CREATE_PRIVATE_CHAT_REQ] = std::bind(&LogicSystem::CreatePrivateChat, this,
+		std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	_fun_callbacks[ID_LOAD_CHAT_MSG_REQ] = std::bind(&LogicSystem::LoadChatMsg, this,
+		std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	_fun_callbacks[ID_IMG_CHAT_MSG_REQ] = std::bind(&LogicSystem::DealChatImgMsg, this,
 		std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 }
 void LogicSystem::PostMsgToQue(std::shared_ptr<LogicNode> logicnode)
@@ -106,65 +119,114 @@ void LogicSystem::DealMsg()
 	}
 
 }
+void LogicSystem::DealHeartBeat(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
+{
+	Json::Reader reader;
+	Json::Value root;
+	reader.parse(msg_data, root);
+	auto uid = root["fromuid"].asInt();
+	std::cout << "receive heart beat msg, uid is " << uid << std::endl;
+	Json::Value  rtvalue;
+	rtvalue["error"] = ErrorCodes::Success;
+	session->Send(rtvalue.toStyledString(), ID_HEARTBEAT_RSP);
+	//更新心跳检测的时间
+	session->UpdateHeartTime();
+}
 void LogicSystem::DealChatTextMsg(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
 {
 	Json::Value root;
 	Json::Reader reader;
 	bool b_parse = reader.parse(msg_data, root);
 	
-	int from_uid = root["from_uid"].asInt();
-	int to_uid = root["to_uid"].asInt();
-	const Json::Value array = root["text_array"];
+	int uid = root["fromuid"].asInt();
+	int touid = root["touid"].asInt();
+	const Json::Value arrays = root["text_array"];
 
 	Json::Value rtvalue;
 	rtvalue["error"] = ErrorCodes::Success;
-	rtvalue["fromuid"] = from_uid;
-	rtvalue["touid"] = to_uid;
-	rtvalue["text_array"] = array;
-	//使用defer肯定发送消息
-	Defer defer([&rtvalue,&session] {
+	rtvalue["fromuid"] = uid;
+	rtvalue["touid"] = touid;
+	auto thread_id = root["thread_id"].asInt();
+	rtvalue["thread_id"] = thread_id;
+	std::vector<std::shared_ptr<ChatMessage>> chat_datas;
+	auto timestamp = getCurrentTimestamp();
+	for (const auto& txt_obj : arrays) {
+		auto content = txt_obj["content"].asString();
+		auto unique_id = txt_obj["unique_id"].asString();
+		std::cout << "content is " << content << std::endl;
+		std::cout << "unique_id is " << unique_id << std::endl;
+		auto chat_msg = std::make_shared<ChatMessage>();
+		chat_msg->chat_time = timestamp;
+		chat_msg->sender_id = uid;
+		chat_msg->recv_id = touid;
+		chat_msg->unique_id = unique_id;
+		chat_msg->thread_id = thread_id;
+		chat_msg->content = content;
+		chat_msg->status = 2;
+		chat_msg->msg_type = int(ChatMsgType::TEXT);
+		chat_datas.push_back(chat_msg);
+	}
+
+
+	//插入数据库
+	MysqlMgr::GetInstance()->AddChatMsg(chat_datas);
+
+
+	for (const auto& chat_data : chat_datas) {
+		Json::Value  chat_msg;
+		chat_msg["message_id"] = chat_data->message_id;
+		chat_msg["unique_id"] = chat_data->unique_id;
+		chat_msg["content"] = chat_data->content;
+		chat_msg["status"] = chat_data->status;
+		chat_msg["chat_time"] = chat_data->chat_time;
+		rtvalue["chat_datas"].append(chat_msg);
+	}
+
+	Defer defer([this, &rtvalue, session]() {
 		std::string return_str = rtvalue.toStyledString();
-		session->Send(return_str, MSG_IDS::ID_TEXT_CHAT_MSG_RSP);
+		session->Send(return_str, ID_TEXT_CHAT_MSG_RSP);
 		});
-	//去redis中查找对象的服务器ip
-	std::string base_ip_key = USERIPPREFIX + std::to_string(to_uid);
+
+
+	//查询redis 查找touid对应的server ip
+	auto to_str = std::to_string(touid);
+	auto to_ip_key = USERIPPREFIX + to_str;
 	std::string to_ip_value = "";
-	bool b_ip = RedisMgr::GetInstance()->Get(base_ip_key, to_ip_value);
+	bool b_ip = RedisMgr::GetInstance()->Get(to_ip_key, to_ip_value);
 	if (!b_ip) {
 		return;
 	}
+
 	auto& cfg = ConfigMgr::Inst();
 	auto self_name = cfg["SelfServer"]["Name"];
-	std::cout << "to_ip_value=[" << to_ip_value << "] self_name=[" << self_name << "]" << std::endl;
 	//直接通知对方有认证通过消息
-	if (self_name == to_ip_value) {
-		//找到对象的session
-		auto to_session = UserMgr::GetInstance()->GetSession(to_uid);
-		if (to_session) {
+	if (to_ip_value == self_name) {
+		auto session = UserMgr::GetInstance()->GetSession(touid);
+		if (session) {
 			//在内存中则直接发送通知对方
 			std::string return_str = rtvalue.toStyledString();
-			to_session->Send(return_str, ID_NOTIFY_TEXT_CHAT_MSG_REQ);
+			session->Send(return_str, ID_NOTIFY_TEXT_CHAT_MSG_REQ);
 		}
+
 		return;
 	}
-	//不在同一个服务器中使用grpc
-	TextChatMsgReq req;
-	req.set_fromuid(from_uid);
-	req.set_touid(to_uid);
-	//从中取出所有的消息
-	for (const auto& txt_obj : array) {
-		auto msg_id = txt_obj["msgid"].asString();
-		auto msg_content = txt_obj["content"].asString();
-		
-		std::cout << "content is " << msg_content << std::endl;
-		std::cout << "msgid is " << msg_id << std::endl;
-		auto* text_msg = req.add_textmsgs();
-		text_msg->set_msgid(msg_id);
-		text_msg->set_msgcontent(msg_content);
+
+
+	TextChatMsgReq text_msg_req;
+	text_msg_req.set_fromuid(uid);
+	text_msg_req.set_touid(touid);
+	text_msg_req.set_thread_id(thread_id);
+	for (const auto& chat_data : chat_datas) {
+		auto* text_msg = text_msg_req.add_textmsgs();
+		text_msg->set_unique_id(chat_data->unique_id);
+		text_msg->set_msgcontent(chat_data->content);
+		text_msg->set_msg_id(chat_data->message_id);
+		text_msg->set_chat_time(chat_data->chat_time);
 	}
-	//传入rtvalue用来判断是否失败
-	ChatGrpcClient::GetInstance()->NotifyTextChatMsg(to_ip_value, req, rtvalue);
-	std::cout << "使用了grpc" << std::endl;
+
+
+	//发送通知 todo...
+	ChatGrpcClient::GetInstance()->NotifyTextChatMsg(to_ip_value, text_msg_req, rtvalue);
 }
 //处理登录逻辑
 void LogicSystem::LoginHandler(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
@@ -177,7 +239,7 @@ void LogicSystem::LoginHandler(std::shared_ptr<CSession> session, const short& m
 		<< root["token"].asString() << std::endl;
 	int uid = root["uid"].asInt();
 	std::string token = root["token"].asString();
-	LoginRsp rsp = StatusGrpcClient::GetInstance()->Login(uid, token);
+	//LoginRsp rsp = StatusGrpcClient::GetInstance()->Login(uid, token);
 
 	//session->Send(return_str, msg_id);
 	Json::Value rtvalue;
@@ -201,7 +263,8 @@ void LogicSystem::LoginHandler(std::shared_ptr<CSession> session, const short& m
 	}
 	rtvalue["error"] = ErrorCodes::Success;
 
-	rtvalue["error"] = rsp.error();
+	
+
 	//如果回复不成功
 	if (rtvalue["error"] != ErrorCodes::Success) {
 		return;
@@ -223,6 +286,7 @@ void LogicSystem::LoginHandler(std::shared_ptr<CSession> session, const short& m
 	rtvalue["desc"] = user_info->desc;
 	rtvalue["sex"] = user_info->sex;
 	rtvalue["icon"] = user_info->icon;
+	rtvalue["token"] = token;
 	//从数据库中获取朋友申请列表
 	std::vector<std::shared_ptr<ApplyInfo>> apply_list;
 	auto b_apply = GetFriendApplyInfo(uid, apply_list);
@@ -252,6 +316,41 @@ void LogicSystem::LoginHandler(std::shared_ptr<CSession> session, const short& m
 		obj["desc"] = friend_ele->desc;
 		obj["back"] = friend_ele->back;
 		rtvalue["friend_list"].append(obj);
+	}
+	auto self_server_name = ConfigMgr::Inst().GetValue("SelfServer", "Name");
+	//加上作用域，}后锁会自动释放，来防止锁的资源消耗
+	{
+		//加入分布式锁
+		auto lock_key = LOCK_PREFIX + uid_str;
+		auto idebter = RedisMgr::GetInstance()->AcquireLock(lock_key, LOCK_TIME_OUT, ACQUIRE_TIME_OUT);
+		Defer defer2([this, lock_key, idebter] {
+			RedisMgr::GetInstance()->Releaselock(lock_key, idebter);
+			});
+		//进行服务器踢人操作
+		std::string ip_key = USERIPPREFIX + uid_str;
+		std::string uid_ip_value = "";
+		bool b_ip = RedisMgr::GetInstance()->Get(ip_key, uid_ip_value);
+		if (b_ip) {
+			auto& conf = ConfigMgr::Inst();
+			auto self_ip_value = conf["SelfServer"]["Name"];
+			//如果是同一个服务器
+			if (uid_ip_value == self_ip_value) {
+				//查找旧的连接
+				auto old_session = UserMgr::GetInstance()->GetSession(uid);
+				//判断是否在线。在线的话
+				if (old_session) {
+					old_session->NotifyOffline(uid);
+					//清除旧的连接
+					//_p_server->ClearSession(old_session->GetSessionId());
+				}
+			}
+			//使用grpc跨服踢人
+			else {
+				KickUserRsp rsp;
+				KickUserReq req;
+				ChatGrpcClient::GetInstance()->NotifyKickUser(self_server_name, req);
+			}
+		}
 	}
 	auto server_name = ConfigMgr::Inst().GetValue("SelfServer", "Name");
 	//将登录数量增加
@@ -327,7 +426,7 @@ void LogicSystem::AddFriendApply(std::shared_ptr<CSession> session, const short&
 		}
 		return;
 	}
-	//如果不在使用grpc,需要申请人的全部信息
+	//如果不在,使用grpc,需要申请人的全部信息
 	std::string base_key = USER_BASE_INFO + std::to_string(apply_uid);
 	auto apply_info = std::make_shared<UserInfo>();
 	bool b_info = GetBaseInfo(base_key,apply_uid,apply_info);
@@ -374,10 +473,11 @@ void LogicSystem::AuthFriendApply(std::shared_ptr<CSession> session, const short
 		session->Send(return_str, MSG_IDS::ID_AUTH_FRIEND_RSP);
 		});
 	//先更新数据库
-	MysqlMgr::GetInstance()->AuthFriendApply(from_uid,to_uid);
+	//MysqlMgr::GetInstance()->AuthFriendApply(from_uid,to_uid);
+	std::vector<std::shared_ptr<message::AddFriendMsg>> chat_datas;
 	//更新朋友表
 	//更新数据库添加好友
-	MysqlMgr::GetInstance()->AddFriend(from_uid, to_uid, back_name);
+	MysqlMgr::GetInstance()->AddFriend(from_uid, to_uid, back_name,chat_datas);
 	//要给另一个客户端发送，先判断在哪个服务器上
 	std::string uid_str = std::to_string(to_uid);
 	std::string ip_key = USERIPPREFIX + uid_str;
@@ -411,6 +511,17 @@ void LogicSystem::AuthFriendApply(std::shared_ptr<CSession> session, const short
 			else {
 				notify["error"] = ErrorCodes::UidInvalid;
 			}
+			for (auto& chat_data : chat_datas)
+			{
+				Json::Value  chat;
+				chat["sender"] = chat_data->sender_id();
+				chat["msg_id"] = chat_data->msg_id();
+				chat["thread_id"] = chat_data->thread_id();
+				chat["unique_id"] = chat_data->unique_id();
+				chat["msg_content"] = chat_data->msgcontent();
+				notify["chat_datas"].append(chat);
+				rtvalue["chat_datas"].append(chat);
+			}
 			std::string return_str = notify.toStyledString();
 			session->Send(return_str, ID_NOTIFY_AUTH_FRIEND_REQ);
 		}
@@ -421,6 +532,18 @@ void LogicSystem::AuthFriendApply(std::shared_ptr<CSession> session, const short
 	AuthFriendReq auth_req;
 	auth_req.set_fromuid(from_uid);
 	auth_req.set_touid(to_uid);
+	for (auto& chat_data : chat_datas)
+	{
+		auto text_msg = auth_req.add_textmsgs();
+		text_msg->CopyFrom(*chat_data);
+		Json::Value  chat;
+		chat["sender"] = chat_data->sender_id();
+		chat["msg_id"] = chat_data->msg_id();
+		chat["thread_id"] = chat_data->thread_id();
+		chat["unique_id"] = chat_data->unique_id();
+		chat["msg_content"] = chat_data->msgcontent();
+		rtvalue["chat_datas"].append(chat);
+	}
 	ChatGrpcClient::GetInstance()->NotifyAuthFriend(ip_value, auth_req);
 
 }
@@ -567,6 +690,176 @@ bool LogicSystem::GetFriendApplyInfo(int to_uid, std::vector<std::shared_ptr<App
 bool LogicSystem::GetFriendList(int self_id, std::vector<std::shared_ptr<UserInfo>>& user_list)
 {
 	return  MysqlMgr::GetInstance()->GetFriendList(self_id, user_list);
+}
+//获取用户的会话列表
+void LogicSystem::GetUserThreadsHandler(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
+{
+	Json::Value root;
+	Json::Reader reader;
+	reader.parse(msg_data, root);
+	int uid = root["uid"].asInt();
+	int last_thread_id = root["thread_id"].asInt();
+	std::cout << "get uid thread " << uid << std::endl;
+
+	//
+	Json::Value rtvalue;
+	rtvalue["error"] = ErrorCodes::Success;
+	rtvalue["uid"] = std::to_string(uid);
+	Defer defer([&rtvalue,this,&session] {
+		std::string  data = rtvalue.toStyledString();
+		session->Send(data,ID_LOAD_CHAT_THREAD_RSP);
+		});
+	//去数据库中查询消息列表
+	std::vector<std::shared_ptr<ChatThreadInfo>> chat_threads;
+	int page_size = 10;
+	bool load_more = false;
+	int64_t next_last_id = 0;
+	bool res = GetUserThreadsInfo(uid,last_thread_id,page_size,chat_threads,load_more,next_last_id);
+	if (!res) {
+		rtvalue["error"] = ErrorCodes::UidInvalid;
+		return;
+	}
+	rtvalue["load_more"] = load_more;
+	rtvalue["next_last_id"] = (int)next_last_id;
+
+	for (auto thread : chat_threads) {
+		Json::Value thread_value;
+		thread_value["thread_id"] = thread->thread_id;
+		thread_value["type"] = thread->thread_type;
+		thread_value["user1_id"] = thread->user1_id;
+		thread_value["user2_id"] = thread->user2_id;
+		rtvalue["threads"].append(thread_value);
+	}
+}
+//去数据库中进行查询
+bool LogicSystem::GetUserThreadsInfo(int uid, int last_thread_id,int page_size,std::vector<std::shared_ptr<ChatThreadInfo>>& threads
+,bool& load_more,int64_t& next_last_id)
+{
+	return MysqlMgr::GetInstance()->GetChatThreads(uid,last_thread_id,page_size,threads,load_more,next_last_id);
+}
+
+void LogicSystem::CreatePrivateChat(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
+{
+	std::cout << "运行到了回调" << std::endl;
+	Json::Reader reader;
+	Json::Value root;
+	reader.parse(msg_data, root);
+	auto uid = root["uid"].asInt();
+	auto other_id = root["other_id"].asInt();
+
+	Json::Value  rtvalue;
+	rtvalue["error"] = ErrorCodes::Success;
+	rtvalue["uid"] = uid;
+	rtvalue["other_id"] = other_id;
+
+	Defer defer([this, &rtvalue, session]() {
+		std::string return_str = rtvalue.toStyledString();
+		session->Send(return_str, ID_CREATE_PRIVATE_CHAT_RSP);
+		});
+
+	int thread_id = 0;
+	bool res = MysqlMgr::GetInstance()->CreatePrivateChat(uid, other_id, thread_id);
+	if (!res) {
+		rtvalue["error"] = ErrorCodes::CREATE_CHAT_FAILED;
+		return;
+	}
+
+	rtvalue["thread_id"] = thread_id;
+}
+
+void LogicSystem::LoadChatMsg(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
+{
+	Json::Reader reader;
+	Json::Value root;
+	reader.parse(msg_data, root);
+	auto thread_id = root["thread_id"].asInt();
+	auto message_id = root["message_id"].asInt();
+
+
+	Json::Value  rtvalue;
+	rtvalue["error"] = ErrorCodes::Success;
+	rtvalue["thread_id"] = thread_id;
+
+	Defer defer([this, &rtvalue, session]() {
+		std::string return_str = rtvalue.toStyledString();
+		session->Send(return_str, ID_LOAD_CHAT_MSG_RSP);
+		});
+
+	int page_size = 10;
+	std::shared_ptr<PageResult> res = MysqlMgr::GetInstance()->LoadChatMsg(thread_id, message_id, page_size);
+	if (!res) {
+		rtvalue["error"] = ErrorCodes::LOAD_CHAT_FAILED;
+		return;
+	}
+
+	rtvalue["last_message_id"] = res->next_cursor;
+	rtvalue["load_more"] = res->load_more;
+	for (auto& chat : res->messages) {
+		Json::Value  chat_data;
+		chat_data["sender"] = chat.sender_id;
+		chat_data["msg_id"] = chat.message_id;
+		chat_data["thread_id"] = chat.thread_id;
+		chat_data["unique_id"] = 0;
+		chat_data["msg_content"] = chat.content;
+		chat_data["chat_time"] = chat.chat_time;
+		chat_data["status"] = chat.status;
+		chat_data["msg_type"] = chat.msg_type;
+		chat_data["receiver"] = chat.recv_id;
+		rtvalue["chat_datas"].append(chat_data);
+	}
+}
+void LogicSystem::DealChatImgMsg(std::shared_ptr<CSession> session,
+	const short& msg_id, const std::string& msg_data) {
+	Json::Reader reader;
+	Json::Value root;
+	reader.parse(msg_data, root);
+
+	auto uid = root["fromuid"].asInt();
+	auto touid = root["touid"].asInt();
+
+	auto md5 = root["md5"].asString();
+	auto unique_name = root["name"].asString();
+	auto token = root["token"].asString();
+	auto unique_id = root["unique_id"].asString();
+	auto chat_time = root["chat_time"].asString();
+	auto status = root["status"].asInt();
+
+	Json::Value  rtvalue;
+	rtvalue["error"] = ErrorCodes::Success;
+
+	rtvalue["fromuid"] = uid;
+	rtvalue["touid"] = touid;
+	auto thread_id = root["thread_id"].asInt();
+	rtvalue["thread_id"] = thread_id;
+	rtvalue["md5"] = md5;
+	rtvalue["unique_name"] = unique_name;
+	rtvalue["unique_id"] = unique_id;
+	rtvalue["chat_time"] = chat_time;
+	rtvalue["status"] = status;
+
+	auto timestamp = getCurrentTimestamp();
+	auto chat_msg = std::make_shared<ChatMessage>();
+	chat_msg->chat_time = timestamp;
+	chat_msg->sender_id = uid;
+	chat_msg->recv_id = touid;
+	chat_msg->unique_id = unique_id;
+	chat_msg->thread_id = thread_id;
+	chat_msg->content = unique_name;
+	chat_msg->status = MsgStatus::UN_UPLOAD;
+	chat_msg->msg_type= int(ChatMsgType::PIC);
+
+
+	//插入数据库
+	MysqlMgr::GetInstance()->AddChatMsg(chat_msg);
+	
+	rtvalue["message_id"] = chat_msg->message_id;
+
+	Defer defer([this, &rtvalue, session]() {
+		std::string return_str = rtvalue.toStyledString();
+		session->Send(return_str, ID_IMG_CHAT_MSG_RSP);
+		});
+
+	//发送通知 todo... 以后等文件上传完成再通知
 }
 bool LogicSystem::GetBaseInfo(std::string user_base_key, int uid, std::shared_ptr<UserInfo>& userinfo) {
 

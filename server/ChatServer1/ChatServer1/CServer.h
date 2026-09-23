@@ -16,11 +16,13 @@ public:
 	void ClearSession(std::string uuid);
 	void Stop();
 	void StartAccept();
+	void On_timer(const boost::system::error_code& ec);
 private:
 	std::mutex _mutex;
 	boost::asio::io_context& _ioc;
 	tcp::acceptor _acceptor;
 	std::map<std::string, std::shared_ptr<CSession>> _sessions;
 	short _port;
+	boost::asio::steady_timer _timer;
 };
 

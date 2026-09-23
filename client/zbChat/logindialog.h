@@ -30,10 +30,12 @@ private:
     bool enableBtn(bool enabled);
     int _uid;
     QString _token;
+    std::shared_ptr<ServerInfo> _si;
 signals:
     void switchRegister();
     void switchReset();
-    void sig_tcp_con(ServerInfo &si);
+    void sig_tcp_con(std::shared_ptr<ServerInfo> si);
+    void sig_connect_res_server(std::shared_ptr<ServerInfo>);
 private slots:
     void slot_forget_pwd();
     void slot_user_login(ReqId id,QString res, ErrorCodes err);

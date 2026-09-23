@@ -9,7 +9,7 @@ public:
 	std::shared_ptr<CSession> GetSession(int uid);
 	void SetUserSession(int uid, std::shared_ptr<CSession> session);
 	//É¾³ý
-	void RevUserSession(int uid);
+	void RevUserSession(int uid, std::string sessionid);
 private:
 	UserMgr();
 	std::mutex _session_mtx;

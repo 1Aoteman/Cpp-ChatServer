@@ -22,18 +22,21 @@ SOURCES += \
     chatuserlist.cpp \
     chatuserwid.cpp \
     chatview.cpp \
+    clickablelabel.cpp \
     clickedbtn.cpp \
     clickedlabel.cpp \
     clickedoncelabel.cpp \
     contactuserlist.cpp \
     conuseritem.cpp \
     customizeedit.cpp \
+    filetcpmgr.cpp \
     findsuccessdlg.cpp \
     friendinfopage.cpp \
     friendlabel.cpp \
     global.cpp \
     grouptipitem.cpp \
     httpmgr.cpp \
+    imagecropperlabel.cpp \
     listitembase.cpp \
     loadingdlg.cpp \
     logindialog.cpp \
@@ -49,6 +52,7 @@ SOURCES += \
     textbubble.cpp \
     timebtn.cpp \
     userdata.cpp \
+    userinfopage.cpp \
     usermgr.cpp
 
 HEADERS += \
@@ -66,18 +70,22 @@ HEADERS += \
     chatuserlist.h \
     chatuserwid.h \
     chatview.h \
+    clickablelabel.h \
     clickedbtn.h \
     clickedlabel.h \
     clickedoncelabel.h \
     contactuserlist.h \
     conuseritem.h \
     customizeedit.h \
+    filetcpmgr.h \
     findsuccessdlg.h \
     friendinfopage.h \
     friendlabel.h \
     global.h \
     grouptipitem.h \
     httpmgr.h \
+    imagecropperdialog.h \
+    imagecropperlabel.h \
     listitembase.h \
     loadingdlg.h \
     logindialog.h \
@@ -92,6 +100,7 @@ HEADERS += \
     textbubble.h \
     timebtn.h \
     userdata.h \
+    userinfopage.h \
     usermgr.h
 
 FORMS += \
@@ -112,7 +121,8 @@ FORMS += \
     logindialog.ui \
     mainwindow.ui \
     registerdialog.ui \
-    resetdialog.ui
+    resetdialog.ui \
+    userinfopage.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

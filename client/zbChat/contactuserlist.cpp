@@ -59,6 +59,17 @@ void ContactUserList::addContactUserList()
     this->addItem(_groupitem);
     this->setItemWidget(_groupitem, groupCon);
     _groupitem->setFlags(_groupitem->flags() & ~Qt::ItemIsSelectable);
+    auto friend_list = UserMgr::GetInstance()->GetFriedList();
+    //获取朋友列表并展示
+    for(auto& friendi : friend_list){
+        auto *con_user_wid = new ConUserItem();
+        con_user_wid->SetInfo(friendi->_uid,friendi->_name,friendi->_icon);
+        QListWidgetItem *item = new QListWidgetItem;
+        //qDebug()<<"chat_user_wid sizeHint is " << chat_user_wid->sizeHint();
+        item->setSizeHint(con_user_wid->sizeHint());
+        this->addItem(item);
+        this->setItemWidget(item, con_user_wid);
+    }
     // 创建QListWidgetItem，并设置自定义的widget
     for(int i = 0; i < 13; i++){
         int randomValue = QRandomGenerator::global()->bounded(100); // 生成0到99之间的随机整数
@@ -130,6 +141,7 @@ void ContactUserList::slot_item_clicked(QListWidgetItem *item)
     if(itemType == ListItemType::APPLY_FRIEND_ITEM){
         // 创建对话框，提示用户
         qDebug()<< "apply friend item clicked ";
+        ShowRedPoint(false);
         //跳转到好友申请界面
         emit sig_switch_apply_friend_page();
         return;
@@ -138,7 +150,10 @@ void ContactUserList::slot_item_clicked(QListWidgetItem *item)
         // 创建对话框，提示用户
         qDebug()<< "contact user item clicked ";
         //跳转到好友申请界面
-        emit sig_switch_friend_info_page();
+        ShowRedPoint(false);
+        auto* conitem = qobject_cast<ConUserItem*>(customItem);
+        auto userinfo = conitem->GetInfo();
+        emit sig_switch_friend_info_page(userinfo);
         return;
     }
 }

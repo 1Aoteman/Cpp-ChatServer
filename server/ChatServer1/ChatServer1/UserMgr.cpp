@@ -23,16 +23,21 @@ void UserMgr::SetUserSession(int uid, std::shared_ptr<CSession> session)
     _uid_to_session[uid] = session;
 }
 
-void UserMgr::RevUserSession(int uid)
+void UserMgr::RevUserSession(int uid,std::string sessionid)
 {
-    auto uid_str = std::to_string(uid);
-    //因为再次登录可能是其他服务器，所以会造成本服务器删除key，其他服务器注册key的情况
-    // 有可能其他服务登录，本服删除key造成找不到key的情况
-    RedisMgr::GetInstance()->Del(USERIPPREFIX + uid_str);
-    {
-        std::lock_guard<std::mutex> lock(_session_mtx);
-        _uid_to_session.erase(uid);
+    std::lock_guard<std::mutex> lock(_session_mtx);
+    //
+    auto idter = _uid_to_session.find(uid);
+    if (idter == _uid_to_session.end()) {
+        return;
     }
+    std::string session_uid = idter->second->GetSessionId();
+    //如果两个session id不相等，说明并不是同一个设备上登陆
+    if (session_uid != sessionid) {
+        return;
+    }
+    _uid_to_session.erase(uid);
+   
 }
 UserMgr::UserMgr() {
 

@@ -147,6 +147,7 @@ xcopy "$(ProjectDir)*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\" /y</Com
   <ItemGroup>
     <ClCompile Include="AsioIoServicePool.cpp" />
     <ClCompile Include="ConfigMgr.cpp" />
+    <ClCompile Include="Distlock.cpp" />
     <ClCompile Include="message.grpc.pb.cc" />
     <ClCompile Include="message.pb.cc" />
     <ClCompile Include="MySqlDao.cpp" />
@@ -159,6 +160,7 @@ xcopy "$(ProjectDir)*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\" /y</Com
     <ClInclude Include="AsioIoServicePool.h" />
     <ClInclude Include="ConfigMgr.h" />
     <ClInclude Include="const.h" />
+    <ClInclude Include="Distlock.h" />
     <ClInclude Include="message.grpc.pb.h" />
     <ClInclude Include="message.pb.h" />
     <ClInclude Include="MySqlDao.h" />

@@ -1,0 +1,243 @@
+#pragma once
+#include <thread>
+#include <mutex>
+#include <queue>
+#include <chrono>
+#include "const.h"
+#include <jdbc/mysql_driver.h>
+#include <jdbc/mysql_connection.h>
+#include <jdbc/cppconn/prepared_statement.h>
+#include <jdbc/cppconn/resultset.h>
+#include <jdbc/cppconn/statement.h>
+#include <jdbc/cppconn/exception.h>
+#include "data.h"
+#include "message.pb.h"
+class SqlConnection {
+public:
+	SqlConnection(sql::Connection* con,int64_t last_time):_con(con),_last_time(last_time){}
+	std::unique_ptr<sql::Connection> _con;
+	int64_t _last_time;
+};
+class MysqlConPool {
+public:
+	MysqlConPool(size_t poolsize, std::string url, std::string user, std::string pass, std::string schema) :
+		_pool_size(poolsize),_url(url),_user(user), _pass(pass), _schema(schema), _b_stop(false)
+	{
+		try {
+			for (int i = 0; i < poolsize; i++) {
+				sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
+				auto* con(driver->connect(_url, _user, _pass));
+				con->setSchema(_schema);
+				// 获取当前时间戳
+				auto currentTime = std::chrono::system_clock::now().time_since_epoch();
+				// 将时间戳转换为秒
+				long long timestamp = std::chrono::duration_cast<std::chrono::seconds>(currentTime).count();
+				_conn.push(std::make_unique<SqlConnection>(con, timestamp));
+				std::cout << "mysql connect success" << std::endl;
+			}
+			//一个线程用来验证连接是否会被回收,每60秒去检查一次连接
+
+			_check_thread = std::thread([this] {
+				int count = 0;
+				while (!_b_stop) {
+					if (count >= 60) {
+						CheckConnection();
+						count = 0;
+					}
+					std::this_thread::sleep_for(std::chrono::seconds(10));
+					count++;
+				}
+				});
+			_check_thread.detach();//与主线程分离
+		}
+		catch (sql::SQLException& e) {
+			std::cout << "sql eccepyion is" << e.what() << std::endl;
+		}
+		
+	}
+	void CheckConnectionPro() {
+		//提升锁的精度
+		size_t targetcount = 0;
+		{
+			std::lock_guard<std::mutex> _lock(_mutex);
+			targetcount = _conn.size();
+		}
+		//获取时间戳
+		auto now = std::chrono::system_clock::now().time_since_epoch();
+		// 将时间戳转换为秒
+		long long timestamp = std::chrono::duration_cast<std::chrono::seconds>(now).count();
+		size_t process = 0;
+		while (process < targetcount) {
+			std::unique_ptr<SqlConnection> con;
+			{
+				std::lock_guard<std::mutex> _lock(_mutex);
+				if (_conn.empty()) {
+					return;
+				}
+				con = std::move(_conn.front());
+				
+			}
+			
+			bool healthy = true;
+			size_t fail_count = 0;
+			if (timestamp - con->_last_time >= 5) {
+				try {
+					std::unique_ptr<sql::Statement> stmt(con->_con->createStatement());
+					stmt->executeQuery("select 1 ");//执行一个查询来延长
+					con->_last_time = timestamp;
+					
+				}
+				catch (sql::SQLException& e) {
+					//如果出现异常，//因为原连接已经被销毁，重新建立一个连接加入队列
+					healthy = false;
+					fail_count++;
+				}
+			}
+			if (healthy) {
+				{
+					std::lock_guard<std::mutex> lock(_mutex); 
+					_conn.push(std::move(con));
+					_cond.notify_one();
+				}
+			}
+			process++;
+			//如果有出错的连接，重新建立
+			while (fail_count > 0) {
+				bool res = Reconnect(timestamp);
+				if (res) {
+					fail_count--;
+				}
+				else {
+					break;
+				}
+			}
+		}
+
+	}
+	bool Reconnect(long long timestamp) {
+		try {
+
+			sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
+			auto* con(driver->connect(_url, _user, _pass));
+			con->setSchema(_schema);
+
+			auto newCon = std::make_unique<SqlConnection>(con, timestamp);
+			{
+				std::lock_guard<std::mutex> guard(_mutex);
+				_conn.push(std::move(newCon));
+			}
+			std::cout << "mysql connection reconnect success" << std::endl;
+			return true;
+
+		}
+		catch (sql::SQLException& e) {
+			std::cout << "Reconnect failed, error is " << e.what() << std::endl;
+			return false;
+		}
+	}
+	void CheckConnection() {
+		size_t poolsize = _pool_size;
+		// 获取当前时间戳
+		auto currentTime = std::chrono::system_clock::now().time_since_epoch();
+		// 将时间戳转换为秒
+		long long timestamp = std::chrono::duration_cast<std::chrono::seconds>(currentTime).count();
+		for (int i = 0; i < poolsize; i++) {
+			auto con=std::move(_conn.front());
+			_conn.pop();
+			Defer defer([&con,this] {
+				_conn.push(std::move(con));
+				});
+			if (timestamp - con->_last_time <5) {
+				continue;
+			}
+			try {
+				std::unique_ptr<sql::Statement> stmt(con->_con->createStatement());
+				stmt->executeQuery("select 1 ");//执行一个查询来延长
+				con->_last_time = timestamp;
+			}
+			catch (sql::SQLException& e) {
+				//如果出现异常，//因为原连接已经被销毁，重新建立一个连接加入队列
+				sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
+				auto* newcon(driver->connect(_url, _user, _pass));
+				newcon->setSchema(_schema);
+				con->_con.reset(newcon);
+				con->_last_time = timestamp;
+			}
+		}
+	}
+	std::unique_ptr<SqlConnection> GetConnection() {
+		std::unique_lock<std::mutex> lock(_mutex);
+		_cond.wait(lock, [&] {
+			if (_b_stop) {
+				return true;
+			}
+			return !_conn.empty();
+			});
+		//防止队列为空时内存越界
+		if (_b_stop) {
+			return nullptr;
+		}
+		std::unique_ptr<SqlConnection> con=std::move(_conn.front());
+		_conn.pop();
+		return con;
+	}
+	void ReturnConnection(std::unique_ptr<SqlConnection> con) {
+		std::unique_lock<std::mutex> lock(_mutex);
+		if (_b_stop) {
+			return;
+		}
+		_conn.push(std::move(con));
+		_cond.notify_one();//归还了一个连接，唤醒一个进程去取；
+	}
+	void Close() {
+		_b_stop = true;
+		_cond.notify_all();
+	}
+	~MysqlConPool() {
+		std::lock_guard<std::mutex> lock(_mutex);
+		while (!_conn.empty()) {
+			_conn.pop();
+		}
+	}
+private:
+	size_t _pool_size;
+	std::atomic<bool> _b_stop;
+	std::queue<std::unique_ptr<SqlConnection>> _conn;//使用队列来存放连接
+	std::mutex _mutex;
+	std::thread _check_thread;
+	std::string _url;
+	std::string _user;
+	std::string _pass;
+	std::string _schema;//数据库名
+	std::condition_variable _cond;
+};
+class MysqlDao
+{
+public:
+	std::shared_ptr<UserInfo> getUser(int uid);
+	std::shared_ptr<UserInfo> getUser(std::string name);
+	bool addfriendApply(int from, int to);
+	bool getApplyList(int touid, std::vector<std::shared_ptr<ApplyInfo>>& _apply_list,int begin, int limit);
+	bool getFriendList(int self_id, std::vector<std::shared_ptr<UserInfo>>& user_list);
+	bool authFriendApply(int from_uid, int to_uid);
+	bool addFriend(int from, int to, std::string& back_name,
+		std::vector<std::shared_ptr<message::AddFriendMsg>>& chat_datas);
+	bool getChatThreads(
+		int64_t userId,
+		int64_t lastId,
+		int      pageSize,
+		std::vector<std::shared_ptr<ChatThreadInfo>>& threads,
+		bool& loadMore,
+		int64_t& nextLastId);
+	bool CreatePrivateChat(int user1_id, int user2_id, int& thread_id);
+	std::shared_ptr<PageResult> LoadChatMsg(int threadId, int lastId, int pageSize);
+	bool AddChatMsg(std::vector<std::shared_ptr<ChatMessage>>& chat_datas);
+	bool UpdateHeadInfo(int uid, const std::string& icon);
+	std::shared_ptr<ChatMessage> GetChatMsgById(int message_id);
+	bool UpdateUploadStatus(int chat_message_id);
+	MysqlDao();
+	~MysqlDao();
+private:
+	std::unique_ptr<MysqlConPool> _pool;
+};
+

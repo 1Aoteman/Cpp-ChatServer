@@ -2,12 +2,15 @@
 #include "UserMgr.h"
 #include "RedisMgr.h"
 #include "MysqlMgr.h"
-
+#include "CServer.h"
 ChatServiceImpl::ChatServiceImpl()
 {
 
 }
-
+void ChatServiceImpl::RegisterServer(std::shared_ptr<CServer> pServer)
+{
+	_p_server = pServer;
+}
 Status ChatServiceImpl::NotifyAddFriend(ServerContext* context, const AddFriendReq* request, AddFriendRsp* reply)
 {
 	//取出对应的session
@@ -69,6 +72,15 @@ Status ChatServiceImpl::NotifyAuthFriend(ServerContext* context, const AuthFrien
 	else {
 		rtvalue["error"] = ErrorCodes::UidInvalid;
 	}
+	for (auto& msg : request->textmsgs()) {
+		Json::Value  chat;
+		chat["sender"] = msg.sender_id();
+		chat["msg_id"] = msg.msg_id();
+		chat["thread_id"] = msg.thread_id();
+		chat["unique_id"] = msg.unique_id();
+		chat["msg_content"] = msg.msgcontent();
+		rtvalue["chat_datas"].append(chat);
+	}
 	std::string return_str = rtvalue.toStyledString();
 	session->Send(return_str, ID_NOTIFY_AUTH_FRIEND_REQ);
 	return Status::OK;
@@ -76,30 +88,51 @@ Status ChatServiceImpl::NotifyAuthFriend(ServerContext* context, const AuthFrien
 }
 Status ChatServiceImpl::NotifyTextChatMsg(ServerContext* context, const TextChatMsgReq* request, TextChatMsgRsp* reply)
 {
-	//检查用户是否在内存中
-	int to_uid = request->touid();
-	auto session = UserMgr::GetInstance()->GetSession(to_uid);
+	//查找用户是否在本服务器
+	auto touid = request->touid();
+	auto session = UserMgr::GetInstance()->GetSession(touid);
 	reply->set_error(ErrorCodes::Success);
+
+	//用户不在内存中则直接返回
 	if (session == nullptr) {
 		return Status::OK;
 	}
-	Json::Value rtvalue;
+
+	//在内存中则直接发送通知对方
+	Json::Value  rtvalue;
 	rtvalue["error"] = ErrorCodes::Success;
 	rtvalue["fromuid"] = request->fromuid();
-	rtvalue["touid"] = to_uid;
+	rtvalue["touid"] = request->touid();
+	rtvalue["thread_id"] = request->thread_id();
 	//将聊天数据组织为数组
 	Json::Value text_array;
 	for (auto& msg : request->textmsgs()) {
 		Json::Value element;
 		element["content"] = msg.msgcontent();
-		element["msgid"] = msg.msgid();
+		element["unique_id"] = msg.unique_id();
+		element["message_id"] = msg.msg_id();
+		element["chat_time"] = msg.chat_time();
 		text_array.append(element);
 	}
-	rtvalue["text_array"] = text_array;
+	rtvalue["chat_datas"] = text_array;
+
 	std::string return_str = rtvalue.toStyledString();
+
 	session->Send(return_str, ID_NOTIFY_TEXT_CHAT_MSG_REQ);
 	return Status::OK;
 
+}
+Status ChatServiceImpl::NotifyKickUser(ServerContext* context, const KickUserReq* request, KickUserRsp* reply)
+{
+	int uid = request->uid();
+	auto session = UserMgr::GetInstance()->GetSession(uid);
+	//如果用户没在内存
+	if (session == nullptr) {
+		return Status::OK;
+	}
+	session->NotifyOffline(uid);
+	_p_server->ClearSession(session->GetSessionId());
+	return Status();
 }
 bool ChatServiceImpl::GetBaseInfo(std::string user_base_key, int uid, std::shared_ptr<UserInfo>& userinfo) {
 
@@ -145,4 +178,27 @@ bool ChatServiceImpl::GetBaseInfo(std::string user_base_key, int uid, std::share
 
 	}
 	return true;
+}
+Status ChatServiceImpl::NotifyChatImgMsg(::grpc::ServerContext* context, const ::message::NotifyChatImgReq* request, ::message::NotifyChatImgRsp* response)
+{
+	//查找用户是否在本服务器
+	auto uid = request->to_uid();
+	auto session = UserMgr::GetInstance()->GetSession(uid);
+
+	Defer defer([request, response]() {
+		//设置具体的回包信息
+		response->set_error(ErrorCodes::Success);
+		response->set_message_id(request->message_id());
+		});
+
+	//用户不在内存中则直接返回
+	if (session == nullptr) {
+		//这里只是返回1个状态
+		return Status::OK;
+	}
+
+	//在内存中则直接发送通知对方
+	session->NotifyChatImgRecv(request);
+	//这里只是返回1个状态
+	return Status::OK;
 }

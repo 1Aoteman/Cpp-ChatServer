@@ -4,6 +4,8 @@
 #include <QFile>
 #include <QDir>
 #include <QSettings>
+#include "tcpmgr.h"
+#include "filetcpmgr.h"
 
 int main(int argc, char *argv[])
 {
@@ -19,6 +21,10 @@ int main(int argc, char *argv[])
     }else{
         qDebug("Open failed");
     }
+    //启动tcp线程
+    TcpThread tcpthread;
+    //启动资源网络线程
+    FileTcpThread file_tcp_thread;
     MainWindow w;
     w.show();
     QString app_path = QCoreApplication::applicationDirPath();
@@ -36,5 +42,7 @@ int main(int argc, char *argv[])
 
     gate_url_prefix = "http://" + gate_host + ":" + gate_port;
     qDebug() << "gate_url_prefix:" << gate_url_prefix;
+
+
     return a.exec();
 }

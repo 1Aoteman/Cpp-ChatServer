@@ -14,7 +14,13 @@ int main()
     auto server_name = conf["SelfServer"]["Name"];
     try {
         
-        RedisMgr::GetInstance()->HSet(LOGIN_COUNT,server_name,"0");
+        
+        //将服务器中的的登录数全变成0，以防在负载均衡的时候查不带数量
+        RedisMgr::GetInstance()->InitCount(server_name);
+        Defer derfer([server_name]() {
+            RedisMgr::GetInstance()->HDel(LOGIN_COUNT, server_name);
+            RedisMgr::GetInstance()->Close();
+            });
         //创捷grpc服务
         std::string server_address = conf["SelfServer"]["Host"] + ":" + conf["SelfServer"]["RPCPort"];
         ChatServiceImpl service;

@@ -38,6 +38,11 @@ void ConUserItem::SetInfo(int uid, QString name, QString icon)
     ui->icon_lb->setScaledContents(true);
     ui->user_name_lb->setText(_info->_name);
 }
+
+std::shared_ptr<UserInfo> ConUserItem::GetInfo()
+{
+    return _info;
+}
 void ConUserItem::SetInfo(std::shared_ptr<AuthRsp> auth_rsp){
     _info = std::make_shared<UserInfo>(auth_rsp);
     // 加载图片
