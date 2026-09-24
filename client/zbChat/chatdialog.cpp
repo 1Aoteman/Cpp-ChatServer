@@ -11,13 +11,15 @@
 #include <QStandardPaths>
 #include <QDir>
 #include "filetcpmgr.h"
+#include "videocallmanager.h"
 
 ChatDialog::ChatDialog(QWidget *parent)
     : QDialog(parent),ui(new Ui::ChatDialog),_mode(ChatUIMode::ChatMode),
     _state(ChatUIMode::ChatMode),_b_loading(false),_last_widget(nullptr),_cur_chat_uid(0),
     _loading_dlg(nullptr)
 {
-
+    // Incoming calls must work even before this user initiates a call.
+    VideoCallManager::GetInstance();
     ui->setupUi(this);
     ui->btnAdd->SetState("normal","hover","press");
     //模拟加载自己头像

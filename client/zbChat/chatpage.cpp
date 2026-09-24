@@ -7,6 +7,7 @@
 #include <QDir>
 #include "filetcpmgr.h"
 #include "picturebubble.h"
+#include "videocallmanager.h"
 
 ChatPage::ChatPage(QWidget *parent) :
     QWidget(parent),
@@ -15,11 +16,20 @@ ChatPage::ChatPage(QWidget *parent) :
     ui->setupUi(this);
     //设置按钮样式
     ui->receive_btn->SetState("normal","hover","press");
+    ui->receive_btn->setText(QStringLiteral("视频通话"));
     ui->send_btn->SetState("normal","hover","press");
     //设置图标样式
     ui->emo_lb->SetState("normal","hover","press","normal","hover","press");
     ui->file_lb->SetState("normal","hover","press","normal","hover","press");
 
+}
+
+void ChatPage::on_receive_btn_clicked()
+{
+    if (!_chat_data || _chat_data->GetOtherId() == 0) {
+        return;
+    }
+    VideoCallManager::GetInstance()->startCall(_chat_data->GetOtherId());
 }
 void ChatPage::paintEvent(QPaintEvent *event)
 {

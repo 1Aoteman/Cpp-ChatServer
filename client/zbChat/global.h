@@ -68,7 +68,9 @@ enum ReqId{
     ID_IMG_CHAT_DOWN_INFO_SYNC_REQ  = 1045,  //获取图片下载信息同步请求
     ID_IMG_CHAT_DOWN_INFO_SYNC_RSP  = 1046,  //获取图片下载信息同步回复
     ID_IMG_CHAT_DOWN_REQ          =  1047,    //聊天图片下载请求
-    ID_IMG_CHAT_DOWN_RSP          =  1048     //聊天图片下载回复
+    ID_IMG_CHAT_DOWN_RSP          =  1048,    //聊天图片下载回复
+    ID_VIDEO_CALL_EVENT_REQ       =  1051,    //视频通话事件请求
+    ID_NOTIFY_VIDEO_CALL_EVENT    =  1052     //视频通话事件通知
 };
 enum ErrorCodes{
     SUCCESS = 0,

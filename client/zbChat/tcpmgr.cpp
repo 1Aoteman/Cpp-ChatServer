@@ -91,6 +91,14 @@ void TcpMgr::CloseConnection()
 
 void TcpMgr::inithandler()
 {
+    _handler.insert(ID_NOTIFY_VIDEO_CALL_EVENT, [this](ReqId, int, QByteArray data) {
+        const QJsonDocument document = QJsonDocument::fromJson(data);
+        if (!document.isObject()) {
+            qWarning() << "invalid video call event";
+            return;
+        }
+        emit sig_video_call_event(document.object());
+    });
     _handler.insert(ID_CHAT_LOGIN_RSP,[this](ReqId id, int len, QByteArray data){
         qDebug()<<"request id id"<<id<<"data is"<<data;
         //转化为json

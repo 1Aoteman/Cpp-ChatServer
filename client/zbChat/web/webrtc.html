@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' qrc:; script-src 'self' qrc: 'unsafe-inline'; style-src 'self' 'unsafe-inline'; media-src blob: qrc:">
+  <style>
+    html, body { margin:0; height:100%; background:#15171a; color:#fff; font-family:sans-serif; }
+    .stage { position:relative; width:100%; height:100%; overflow:hidden; }
+    #remote { width:100%; height:100%; object-fit:contain; background:#08090a; }
+    #local { position:absolute; right:18px; bottom:18px; width:26%; max-width:260px;
+             aspect-ratio:16/9; object-fit:cover; background:#222; border:1px solid #555;
+             border-radius:8px; transform:scaleX(-1); }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <video id="remote" autoplay playsinline></video>
+    <video id="local" autoplay muted playsinline></video>
+  </div>
+  <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+  <script>
+    let bridge = null;
+    let pc = null;
+    let localStream = null;
+    const pendingIce = [];
+    const localVideo = document.getElementById('local');
+    const remoteVideo = document.getElementById('remote');
+
+    const rtcConfig = {
+      iceServers: [
+        { urls: 'stun:81.68.86.146:3478' },
+        { urls: 'turn:81.68.86.146:3478', username: 'webrtc', credential: 'Kx9mP2qL8rY5tZ' }
+      ]
+    };
+
+    function state(text) { if (bridge) bridge.reportState(text); }
+    function send(message) { if (bridge) bridge.sendSignal(JSON.stringify(message)); }
+
+    async function ensureMedia() {
+      if (localStream) return localStream;
+      state('正在请求摄像头和麦克风权限…');
+      localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+      localVideo.srcObject = localStream;
+      return localStream;
+    }
+
+    async function ensurePeer() {
+      if (pc) return pc;
+      pc = new RTCPeerConnection(rtcConfig);
+      pc.onicecandidate = event => {
+        if (event.candidate) send({type:'ice', candidate:event.candidate.toJSON()});
+      };
+      pc.ontrack = event => { if (event.streams[0]) remoteVideo.srcObject = event.streams[0]; };
+      pc.onconnectionstatechange = () => state('连接状态：' + pc.connectionState);
+      const stream = await ensureMedia();
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      return pc;
+    }
+
+    async function flushIce() {
+      while (pendingIce.length && pc && pc.remoteDescription) {
+        await pc.addIceCandidate(pendingIce.shift());
+      }
+    }
+
+    async function begin(initiator) {
+      try {
+        await ensurePeer();
+        if (initiator) {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          send({type:'offer', sdp:{type:pc.localDescription.type, sdp:pc.localDescription.sdp}});
+        } else {
+          state('等待对方建立连接…');
+        }
+      } catch (error) {
+        state('启动失败：' + error.message);
+      }
+    }
+
+    async function receive(json) {
+      try {
+        const message = JSON.parse(json);
+        await ensurePeer();
+        if (message.type === 'offer') {
+          await pc.setRemoteDescription(message.sdp);
+          await flushIce();
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          send({type:'answer', sdp:{type:pc.localDescription.type, sdp:pc.localDescription.sdp}});
+        } else if (message.type === 'answer') {
+          await pc.setRemoteDescription(message.sdp);
+          await flushIce();
+        } else if (message.type === 'ice') {
+          if (pc.remoteDescription) await pc.addIceCandidate(message.candidate);
+          else pendingIce.push(message.candidate);
+        }
+      } catch (error) {
+        state('协商失败：' + error.message);
+      }
+    }
+
+    function stop() {
+      if (pc) { pc.close(); pc = null; }
+      if (localStream) localStream.getTracks().forEach(track => track.stop());
+      localStream = null;
+      localVideo.srcObject = null;
+      remoteVideo.srcObject = null;
+      pendingIce.length = 0;
+    }
+
+    new QWebChannel(qt.webChannelTransport, channel => {
+      bridge = channel.objects.rtcBridge;
+      bridge.begin.connect(begin);
+      bridge.remoteSignal.connect(receive);
+      bridge.stop.connect(stop);
+      bridge.reportReady();
+    });
+    window.addEventListener('beforeunload', stop);
+  </script>
+</body>
+</html>

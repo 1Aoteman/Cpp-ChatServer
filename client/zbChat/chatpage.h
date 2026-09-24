@@ -33,6 +33,7 @@ public:
     void DownloadFileFinished(std::shared_ptr<MsgInfo> msg_info, QString file_path);
 private slots:
     void on_send_btn_clicked();
+    void on_receive_btn_clicked();
     void on_clicked_paused(QString unique_name, TransferType transfer_type);
     void on_clicked_resume(QString unique_name, TransferType transfer_type);
 signals:

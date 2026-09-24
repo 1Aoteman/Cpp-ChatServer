@@ -34,7 +34,7 @@ private:
 	std::function<void()> _fun;
 };
 
-#define MAX_LENGTH  1024*2
+#define MAX_LENGTH  1024*30
 //头部总长度
 #define HEAD_TOTAL_LEN 4
 //头部id长度
@@ -74,7 +74,9 @@ enum MSG_IDS {
 	ID_IMG_CHAT_MSG_RSP = 1036,       //图片聊天信息回复
 	ID_NOTIFY_IMG_CHAT_MSG_REQ = 1039, //通知用户图片聊天信息
 	ID_FILE_INFO_SYNC_REQ = 1041,      //文件信息同步请求
-	ID_FILE_INFO_SYNC_RSP = 1042       //文件信息同步回复
+	ID_FILE_INFO_SYNC_RSP = 1042,      //文件信息同步回复
+	ID_VIDEO_CALL_EVENT_REQ = 1051,
+	ID_NOTIFY_VIDEO_CALL_EVENT = 1052
 };
 
 #define USERIPPREFIX  "uip_"

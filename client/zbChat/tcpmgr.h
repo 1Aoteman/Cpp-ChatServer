@@ -69,6 +69,7 @@ signals:
     void sig_chat_msg_rsp(int thread_id, std::vector<std::shared_ptr<TextChatData>> msg_list);
     void sig_chat_img_rsp(int,std::shared_ptr<ImgChatData>);
     void sig_img_chat_msg(std::shared_ptr<ImgChatData>);
+    void sig_video_call_event(QJsonObject event);
 public slots:
     void slot_tcp_con(std::shared_ptr<ServerInfo> si);
     void slot_send_data(ReqId id,QByteArray data);

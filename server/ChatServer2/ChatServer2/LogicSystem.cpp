@@ -48,6 +48,27 @@ void LogicSystem::InitCallBack()
 	//处理发送的消息
 	_fun_callbacks[MSG_IDS::ID_TEXT_CHAT_MSG_REQ] = std::bind(&LogicSystem::DealChatTextMsg, this,
 		std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	_fun_callbacks[ID_VIDEO_CALL_EVENT_REQ] = std::bind(&LogicSystem::DealVideoCallEvent, this,
+		std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+}
+
+void LogicSystem::DealVideoCallEvent(std::shared_ptr<CSession> session,
+	const short&, const std::string& msg_data)
+{
+	Json::Value root;
+	Json::Reader reader;
+	if (!reader.parse(msg_data, root) || !root.isObject()) return;
+
+	const int from_uid = session->GetUserId();
+	const int to_uid = root["touid"].asInt();
+	const std::string event = root["event"].asString();
+	const std::string call_id = root["call_id"].asString();
+	if (from_uid <= 0 || to_uid <= 0 || event.empty() || call_id.empty()) return;
+
+	root["fromuid"] = from_uid;
+	root["touid"] = to_uid;
+	auto target = UserMgr::GetInstance()->GetSession(to_uid);
+	if (target) target->Send(root.toStyledString(), ID_NOTIFY_VIDEO_CALL_EVENT);
 }
 void LogicSystem::PostMsgToQue(std::shared_ptr<LogicNode> logicnode)
 {

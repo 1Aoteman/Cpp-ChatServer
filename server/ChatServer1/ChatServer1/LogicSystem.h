@@ -35,6 +35,8 @@ public:
 	void LoadChatMsg(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 	void DealChatImgMsg(std::shared_ptr<CSession> session,
 		const short& msg_id, const std::string& msg_data);
+	void DealVideoCallEvent(std::shared_ptr<CSession> session,
+		const short& msg_id, const std::string& msg_data);
 private:
 	std::map<short, FunCallBack> _fun_callbacks;
 	std::atomic<bool> _b_stop;

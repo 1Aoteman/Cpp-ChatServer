@@ -30,7 +30,7 @@ private:
 	std::function<void()> _fun;
 };
 
-#define MAX_LENGTH  1024*2
+#define MAX_LENGTH  1024*30
 //头部总长度
 #define HEAD_TOTAL_LEN 4
 //头部id长度
@@ -58,6 +58,8 @@ enum MSG_IDS {
 	ID_NOTIFY_OFF_LINE_REQ = 1021, //通知用户下线
 	ID_HEART_BEAT_REQ = 1023,      //心跳请求
 	ID_HEARTBEAT_RSP = 1024,       //心跳回复
+	ID_VIDEO_CALL_EVENT_REQ = 1051,
+	ID_NOTIFY_VIDEO_CALL_EVENT = 1052,
 };
 
 #define USERIPPREFIX  "uip_"
