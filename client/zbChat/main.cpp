@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     QFile qss(":/style/stylesheet.qss");
-
+    a.setWindowIcon(QIcon(":/res/app_icon.png"));
     if( qss.open(QFile::ReadOnly))
     {
         qDebug("open success");

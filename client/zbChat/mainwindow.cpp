@@ -92,7 +92,7 @@ void MainWindow::SlotSwitchChat()
     setCentralWidget(_chat_dlg);
     _chat_dlg->show();
     _login_dlg->hide();
-    this->setMinimumSize(QSize(1050,900));
+    this->setMinimumSize(QSize(840,720));
     this->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     _ui_status = CHAT_UI;
     _chat_dlg->loadChatList();

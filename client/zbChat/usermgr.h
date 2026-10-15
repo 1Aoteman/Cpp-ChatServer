@@ -7,6 +7,7 @@
 #include <QMap>
 #include <QJsonArray>
 #include <QFileInfo>
+#include <QPointer>
 #include <qlabel.h>
 class UserMgr:public QObject,public Singleton<UserMgr>,
                 public std::enable_shared_from_this<UserMgr>
@@ -19,6 +20,7 @@ public:
     QString GetName();
     int GetUId();
     QString GetIcon();
+    void SetIcon(const QString& icon);
     void SetUid(int uid);
     void SetToken(QString token);
     QString GetToken();
@@ -92,7 +94,7 @@ private:
     std::mutex _down_load_mtx;
     //名字关联下载信息
     QMap<QString, std::shared_ptr<DownloadInfo> > _name_to_download_info;
-    QHash<QString, QList<QLabel*>> _path_to_reset_labels;
+    QHash<QString, QList<QPointer<QLabel>>> _path_to_reset_labels;
     //聊天传输文件映射
     QHash<QString, std::shared_ptr<MsgInfo> > _name_to_msg_info;
     //传输文件用的锁

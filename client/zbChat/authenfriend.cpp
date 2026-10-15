@@ -337,7 +337,7 @@ void AuthenFriend::SlotApplySure()
     }else{
         back_name = ui->back_ed->text();
     }
-    jsonObj["back"] = back_name;
+    jsonObj["backname"] = back_name;
     QJsonDocument doc(jsonObj);
     QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
     //发送tcp请求给chat server

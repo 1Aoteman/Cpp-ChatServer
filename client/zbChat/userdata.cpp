@@ -129,11 +129,21 @@ void ChatThreadData::UpdateProgress(std::shared_ptr<MsgInfo> msg) {
 
 void AuthRsp::SetChatDatas(std::vector<std::shared_ptr<TextChatData>> chat_datas) {
     _chat_datas = chat_datas;
+    if (_chat_datas.empty()) {
+        _thread_id = 0;
+        qWarning() << "AuthRsp chat_datas is empty";
+        return;
+    }
     _thread_id = _chat_datas[0]->GetThreadId();
 }
 void AuthInfo::SetChatDatas(std::vector<std::shared_ptr<TextChatData> > chat_datas)
 {
     _chat_datas = chat_datas;
+    if (_chat_datas.empty()) {
+        _thread_id = 0;
+        qWarning() << "AuthRsp chat_datas is empty";
+        return;
+    }
     _thread_id = _chat_datas[0]->GetThreadId();
 }
 std::shared_ptr<ChatDataBase> ChatThreadData::GetChatDataBase(int msg_id) {

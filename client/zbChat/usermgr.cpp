@@ -18,7 +18,19 @@ int UserMgr::GetUId()
 
 QString UserMgr::GetIcon()
 {
+    if (!_user_info) {
+        return QString();
+    }
+
     return _user_info->_icon;
+}
+void UserMgr::SetIcon(const QString& icon)
+{
+    if (!_user_info) {
+        return;
+    }
+
+    _user_info->_icon = icon;
 }
 void UserMgr::SetName(QString name)
 {
@@ -272,7 +284,7 @@ void UserMgr::AddLabelToReset(QString path, QLabel* label)
 {
     auto iter = _path_to_reset_labels.find(path);
     if (iter == _path_to_reset_labels.end()) {
-        QList<QLabel*> list;
+        QList<QPointer<QLabel>> list;
         list.append(label);
         _path_to_reset_labels.insert(path, list);
         return;
@@ -292,16 +304,20 @@ void UserMgr::ResetLabelIcon(QString path)
         return;
     }
 
-    for (auto ele_iter = iter.value().begin(); ele_iter != iter.value().end(); ele_iter++) {
-        QPixmap pixmap(path); // 加载上传的头像图片
-        if (!pixmap.isNull()) {
-            QPixmap scaledPixmap = pixmap.scaled((*ele_iter)->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            (*ele_iter)->setPixmap(scaledPixmap);
-            (*ele_iter)->setScaledContents(true);
+    QPixmap pixmap(path);
+    if (pixmap.isNull()) {
+        qWarning() << "无法加载上传的头像：" << path;
+        _path_to_reset_labels.erase(iter);
+        return;
+    }
+    for (const auto &label : iter.value()) {
+        if (!label) {
+            continue;
         }
-        else {
-            qWarning() << "无法加载上传的头像：" << path;
-        }
+        QPixmap scaledPixmap = pixmap.scaled(label->size(), Qt::KeepAspectRatio,
+                                              Qt::SmoothTransformation);
+        label->setPixmap(scaledPixmap);
+        label->setScaledContents(true);
     }
 
     _path_to_reset_labels.erase(iter);

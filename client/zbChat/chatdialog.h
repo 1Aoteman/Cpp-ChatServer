@@ -49,6 +49,7 @@ public slots:
     void slot_load_chat_msg(int thread_id, int msg_id, bool load_more, std::vector<std::shared_ptr<ChatDataBase>> msglists);
     void slot_add_chat_msg(int thread_id, std::vector<std::shared_ptr<TextChatData>> msglists);
     void slot_reset_icon(QString path);
+    void slot_head_icon_upload_finished(QString iconName, QString localPath);
     void slot_add_img_msg(int thread_id, std::shared_ptr<ImgChatData> img_msg);
     void slot_update_upload_progress(std::shared_ptr<MsgInfo> msg_info);
     void slot_download_finish(std::shared_ptr<MsgInfo> msg_info, QString file_path);

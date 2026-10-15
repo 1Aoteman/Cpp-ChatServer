@@ -188,13 +188,16 @@ void FileTcpMgr::initHandlers()
         auto name = recvObj["name"].toString();
 
         qDebug() << "recv : " << name  << "file trans_size is " << trans_size;
-        //判断trans_size和total_size相等
-        if(total_size == trans_size){
+        auto file_info = UserMgr::GetInstance()->GetFileInfoByfilename(name);
+        if(!file_info){
+            qWarning() << "Could not find local avatar info:" << name;
             return;
         }
 
-        auto file_info = UserMgr::GetInstance()->GetFileInfoByfilename(name);
-        if(!file_info){
+        // ResourceServer has persisted the final chunk (and updated the user icon)
+        // before sending this response. Notify the UI only after that confirmation.
+        if (trans_size >= total_size) {
+            emit sig_head_icon_upload_finished(name, file_info->filePath());
             return;
         }
 

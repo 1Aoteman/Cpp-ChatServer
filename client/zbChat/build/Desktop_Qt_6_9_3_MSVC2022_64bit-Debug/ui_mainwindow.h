@@ -31,7 +31,7 @@ public:
             MainWindow->setObjectName("MainWindow");
         MainWindow->resize(300, 500);
         MainWindow->setMinimumSize(QSize(300, 500));
-        MainWindow->setMaximumSize(QSize(300, 500));
+        MainWindow->setMaximumSize(QSize(16777215, 16777215));
         centralwidget = new QWidget(MainWindow);
         centralwidget->setObjectName("centralwidget");
         MainWindow->setCentralWidget(centralwidget);

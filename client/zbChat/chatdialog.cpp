@@ -179,6 +179,8 @@ ChatDialog::ChatDialog(QWidget *parent)
     connect(TcpMgr::GetInstance().get(), &TcpMgr::sig_chat_msg_rsp, this, &ChatDialog::slot_add_chat_msg);
     //重置label icon
     connect(FileTcpMgr::GetInstance().get(), &FileTcpMgr::sig_reset_label_icon, this, &ChatDialog::slot_reset_icon);
+    connect(FileTcpMgr::GetInstance().get(), &FileTcpMgr::sig_head_icon_upload_finished,
+            this, &ChatDialog::slot_head_icon_upload_finished);
     connect(TcpMgr::GetInstance().get(),&TcpMgr::sig_chat_img_rsp,this,&ChatDialog::slot_add_img_msg);
     //接收tcp返回的上传进度信息
     connect(FileTcpMgr::GetInstance().get(), &FileTcpMgr::sig_update_upload_progress,
@@ -924,6 +926,28 @@ void ChatDialog::slot_friend_info_clicked(std::shared_ptr<UserInfo> userinfo)
 }
 void ChatDialog::slot_reset_icon(QString path) {
     UserMgr::GetInstance()->ResetLabelIcon(path);
+}
+void ChatDialog::slot_head_icon_upload_finished(QString iconName, QString localPath)
+{
+    QFileInfo fileInfo(localPath);
+    if (!fileInfo.exists() || !fileInfo.isFile()) {
+        qWarning() << "Avatar file does not exist:" << localPath;
+        return;
+    }
+
+    QPixmap pixmap(localPath);
+    if (pixmap.isNull()) {
+        qWarning() << "Failed to load uploaded avatar:" << localPath;
+        return;
+    }
+
+    UserMgr::GetInstance()->SetIcon(iconName);
+
+    QPixmap scaledPixmap = pixmap.scaled(ui->side_head_lb->size(),
+                                         Qt::KeepAspectRatio,
+                                         Qt::SmoothTransformation);
+    ui->side_head_lb->setPixmap(scaledPixmap);
+    ui->side_head_lb->setScaledContents(true);
 }
 void ChatDialog::slot_add_img_msg(int thread_id, std::shared_ptr<ImgChatData> img_msg) {
     auto chat_data = UserMgr::GetInstance()->GetChatThreadByThreadId(thread_id);
